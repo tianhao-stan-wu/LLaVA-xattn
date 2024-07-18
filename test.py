@@ -1,7 +1,7 @@
 import torch
 from transformers import LlavaForConditionalGeneration
 
-model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-1.5-7b-hf", torch_dtype=torch.float16, device_map="auto")
+
 
 from typing import Sequence, Dict
 from llava.constants import DEFAULT_IMAGE_TOKEN
@@ -118,7 +118,7 @@ train_dataset = SFTDataset(data_path="./test_dataset/llava_instruct_10.json",
 
 from transformers import Trainer
 from transformers import TrainingArguments
-from llava.train import DataCollatorForSupervisedDataset
+from llava.train.train import DataCollatorForSupervisedDataset
 
 # based on https://github.com/haotian-liu/LLaVA/blob/9a26bd1435b4ac42c282757f2c16d34226575e96/scripts/finetune_qlora.sh
 training_args = TrainingArguments(
@@ -145,6 +145,7 @@ training_args = TrainingArguments(
 )
 
 data_collator = DataCollatorForSupervisedDataset(tokenizer=processor.tokenizer)
+model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-1.5-7b-hf", torch_dtype=torch.float16, device_map="auto")
 
 trainer = Trainer(model=model,
                   data_collator=data_collator,
