@@ -8,8 +8,11 @@ echo "conda env llava-xattn activated"
 # Change directory to project folder
 cd dataset/vstanwu/LLaVA-xattn || { echo "Failed to change directory"; exit 1; }
 echo "moved to project dir dataset/vstanwu/LLaVA-xattn"
-
-echo "running finetuning script..."
+echo " "
+echo "********************************"
+echo "* running finetuning script... *"
+echo "********************************"
+echo " "
 
 deepspeed llava/train/train_mem.py \
     --lora_enable True --lora_r 128 --lora_alpha 256 --mm_projector_lr 2e-5 \
@@ -46,6 +49,13 @@ deepspeed llava/train/train_mem.py \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
     --report_to wandb
+
+
+echo " "
+echo "********************************"
+echo "*  finetuning script finished  *"
+echo "********************************"
+echo " "
 
 # Deactivate the conda environment
 conda deactivate
