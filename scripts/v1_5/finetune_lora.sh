@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Activate the conda environment
-source dataset/vstanwu/miniconda3/etc/profile.d/conda.sh
+# source dataset/vstanwu/miniconda3/etc/profile.d/conda.sh
 conda activate llava-xattn || { echo "Failed to activate conda env"; exit 1; }
 echo "conda env llava-xattn activated"
 
