@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # Activate the conda environment
-# source dataset/vstanwu/miniconda3/etc/profile.d/conda.sh
+source dataset/vstanwu/miniconda3/etc/profile.d/conda.sh
 conda activate llava-xattn || { echo "Failed to activate conda env"; exit 1; }
 echo "conda env llava-xattn activated"
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/dataset/vstanwu/miniconda3/envs/llava-xattn/lib/python3.10/site-packages/nvidia/cudnn/lib
 
 # Change directory to project folder
 cd dataset/vstanwu/LLaVA-xattn || { echo "Failed to change directory"; exit 1; }
