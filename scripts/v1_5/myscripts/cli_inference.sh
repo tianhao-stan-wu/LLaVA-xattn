@@ -26,7 +26,7 @@ echo "***********************************"
 echo " "
 
 python -m llava.serve.cli \
-    --model-path "/dataset/vstanwu/LLaVA-xattn/checkpoints/llava-v1.5-7b-lora-merged" \
+    --model-path checkpoints/llava-v1.5-7b-lora-merged \
     --model-base lmsys/vicuna-7b-v1.5 \
     --image-file "https://llava-vl.github.io/static/images/view.jpg" \
     --load-4bit
