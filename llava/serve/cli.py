@@ -65,13 +65,17 @@ def main(args):
         image_tensor = image_tensor.to(model.device, dtype=torch.float16)
 
     while True:
-        try:
-            inp = input(f"{roles[0]}: ")
-        except EOFError:
-            inp = ""
-        if not inp:
-            print("exit...")
-            break
+        # try:
+        #     inp = input(f"{roles[0]}: ")
+        # except EOFError:
+        #     inp = ""
+        # if not inp:
+        #     print("exit...")
+        #     break
+
+        # single inference for testing
+        inp = args.user_question
+        print(f"{roles[0]}: {inp}")
 
         print(f"{roles[1]}: ", end="")
 
@@ -109,12 +113,17 @@ def main(args):
         if args.debug:
             print("\n", {"prompt": prompt, "outputs": outputs}, "\n")
 
+        # for one inference
+        print(outputs)
+        break
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="facebook/opt-350m")
     parser.add_argument("--model-base", type=str, default=None)
     parser.add_argument("--image-file", type=str, required=True)
+    parser.add_argument("--user-question", type=str, default=None)
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--conv-mode", type=str, default=None)
     parser.add_argument("--temperature", type=float, default=0.2)
