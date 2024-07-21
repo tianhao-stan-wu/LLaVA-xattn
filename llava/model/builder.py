@@ -62,9 +62,11 @@ def load_pretrained_model(model_path, model_base, model_name, load_8bit=False, l
 
             print('Loading additional LLaVA weights...')
             if os.path.exists(os.path.join(model_path, 'non_lora_trainables.bin')):
+                print('From', os.path.join(model_path, 'non_lora_trainables.bin'))
                 non_lora_trainables = torch.load(os.path.join(model_path, 'non_lora_trainables.bin'), map_location='cpu')
             else:
                 # this is probably from HF Hub
+                print('From HF hub')
                 from huggingface_hub import hf_hub_download
                 def load_from_hf(repo_id, filename, subfolder=None):
                     cache_file = hf_hub_download(
