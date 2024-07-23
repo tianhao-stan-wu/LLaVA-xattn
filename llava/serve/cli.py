@@ -112,9 +112,7 @@ def main(args):
 
         if args.debug:
             print("\n", {"prompt": prompt, "outputs": outputs}, "\n")
-
-        # for one inference
-        print(outputs)
+        
         break
 
 
