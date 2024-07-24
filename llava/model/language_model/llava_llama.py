@@ -26,8 +26,20 @@ from transformers.generation.utils import GenerateOutput
 
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 
-# custom llama with xattn
-from llama_xattn_modelling import LlamaXAttnConfig, LlamaXAttnModel, LlamaXAttnForCausalLM
+# # custom llama with xattn
+# from llama_xattn_modelling import LlamaXAttnConfig, LlamaXAttnModel, LlamaXAttnForCausalLM
+
+
+class LlamaXAttnConfig(LlamaConfig):
+    model_type = "llama_xattn"
+
+
+class LlamaXAttnModel(LlamaModel):
+    config_class = LlamaXAttnConfig
+
+
+class LlamaXAttnForCausalLM(LlamaForCausalLM):
+    config_class = LlamaXAttnConfig
 
 
 class LlavaConfig(LlamaXAttnConfig):
