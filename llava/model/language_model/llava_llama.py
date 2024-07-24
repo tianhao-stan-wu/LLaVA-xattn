@@ -33,7 +33,9 @@ from einops import rearrange, repeat
 from einops_exts import rearrange_many
 from torch import einsum, nn
 
-from transformers import LlamaDecoderLayer, Cache, BaseModelOutputWithPast, DynamicCache
+from transformers.models.llama.modeling_llama import LlamaDecoderLayer
+from transformers.cache_utils import Cache, DynamicCache
+from transformers.modeling_outputs import BaseModelOutputWithPast
 
 
 def exists(val):
