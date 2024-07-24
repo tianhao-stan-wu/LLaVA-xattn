@@ -26,23 +26,26 @@ from transformers.generation.utils import GenerateOutput
 
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 
+# custom llama with xattn
+from llama_xattn_modelling import LlamaXAttnConfig, LlamaXAttnModel, LlamaXAttnForCausalLM
 
-class LlavaConfig(LlamaConfig):
+
+class LlavaConfig(LlamaXAttnConfig):
     model_type = "llava_llama"
 
 
-class LlavaLlamaModel(LlavaMetaModel, LlamaModel):
+class LlavaLlamaModel(LlavaMetaModel, LlamaXAttnModel):
     config_class = LlavaConfig
 
-    def __init__(self, config: LlamaConfig):
+    def __init__(self, config: LlamaXAttnConfig):
         super(LlavaLlamaModel, self).__init__(config)
 
 
-class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
+class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
     config_class = LlavaConfig
 
     def __init__(self, config):
-        super(LlamaForCausalLM, self).__init__(config)
+        super(LlamaXAttnForCausalLM, self).__init__(config)
         self.model = LlavaLlamaModel(config)
         self.pretraining_tp = config.pretraining_tp
         self.vocab_size = config.vocab_size
