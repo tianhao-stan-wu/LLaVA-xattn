@@ -33,7 +33,7 @@ from einops import rearrange, repeat
 from einops_exts import rearrange_many
 from torch import einsum, nn
 
-from transformers.models.llama.modeling_llama import LlamaDecoderLayer
+from transformers.models.llama.modeling_llama import LlamaDecoderLayer, LlamaRMSNorm
 from transformers.cache_utils import Cache, DynamicCache
 from transformers.modeling_outputs import BaseModelOutputWithPast
 
@@ -45,7 +45,7 @@ def exists(val):
 def FeedForward(dim, mult=4):
     inner_dim = int(dim * mult)
     return nn.Sequential(
-        nn.LayerNorm(dim),
+        LlamaRMSNorm(dim),
         nn.Linear(dim, inner_dim, bias=False),
         nn.GELU(),
         nn.Linear(inner_dim, dim, bias=False),
@@ -68,7 +68,7 @@ class MaskedCrossAttention(nn.Module):
         self.heads = num_heads
         inner_dim = head_dim * num_heads
 
-        self.norm = nn.LayerNorm(text_dim)
+        self.norm = nn.LlamaRMSNorm(text_dim)
 
         self.to_q = nn.Linear(text_dim, inner_dim, bias=False)
         self.to_kv = nn.Linear(vision_dim, inner_dim * 2, bias=False)
