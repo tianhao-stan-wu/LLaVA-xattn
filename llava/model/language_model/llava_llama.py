@@ -201,13 +201,13 @@ class GatedCrossAttentionBlock(nn.Module):
 
 class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
 
-    def __init__(self, config: LlamaConfig, layer_idx: int, vision_dim):
+    def __init__(self, config: LlamaConfig, layer_idx: int):
         super().__init__(config, layer_idx)
 
         # add gated_xattn layer
         self.gated_xattn = GatedCrossAttentionBlock(
             text_dim=config.hidden_size,
-            vision_dim=vision_dim,
+            vision_dim=config.hidden_size,
             head_dim=64,
             num_heads=8,
             ff_mult=4,
@@ -279,11 +279,11 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
 class LlamaXAttnModel(LlamaModel):
     config_class = LlamaConfig
 
-    def __init__(self, config: LlamaConfig, vision_dim):
+    def __init__(self, config: LlamaConfig):
         super().__init__(config)
 
         self.layers = nn.ModuleList(
-                [LlamaXAttnDecoderLayer(config, layer_idx, vision_dim) for layer_idx in range(config.num_hidden_layers)]
+                [LlamaXAttnDecoderLayer(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
             )
     
     def forward(
@@ -411,10 +411,10 @@ class LlamaXAttnModel(LlamaModel):
 class LlamaXAttnForCausalLM(LlamaForCausalLM):
     config_class = LlamaConfig
 
-    def __init__(self, config, vision_dim):
+    def __init__(self, config):
         super().__init__(config)
 
-        self.model = LlamaXAttnModel(config, vision_dim)
+        self.model = LlamaXAttnModel(config)
 
     def forward(
         self,
@@ -498,16 +498,16 @@ class LlavaConfig(LlamaConfig):
 class LlavaLlamaModel(LlavaMetaModel, LlamaXAttnModel):
     config_class = LlavaConfig
 
-    def __init__(self, config: LlamaConfig, vision_dim):
-        super(LlavaLlamaModel, self).__init__(config, vision_dim)
+    def __init__(self, config: LlamaConfig):
+        super(LlavaLlamaModel, self).__init__(config)
 
 
 class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
     config_class = LlavaConfig
 
-    def __init__(self, config, vision_dim):
-        super(LlamaXAttnForCausalLM, self).__init__(config, vision_dim)
-        self.model = LlavaLlamaModel(config, vision_dim)
+    def __init__(self, config):
+        super(LlamaXAttnForCausalLM, self).__init__(config)
+        self.model = LlavaLlamaModel(config)
         self.pretraining_tp = config.pretraining_tp
         self.vocab_size = config.vocab_size
         self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)
