@@ -97,6 +97,11 @@ class MaskedCrossAttention(nn.Module):
                 media_locations.shape[1] == x.shape[1]
             ), f"media_location.shape is {media_locations.shape} but x.shape is {x.shape}"
 
+        # debug
+        print("************************************")
+        print("x.shape: ", x.shape, "  media.shape: ", media.shape)
+        print("************************************")
+
         T_txt = x.shape[1]
         _, T_img, n = media.shape[:3]
         h = self.heads
@@ -241,7 +246,7 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
             past_key_value (`Tuple(torch.FloatTensor)`, *optional*): cached past key and value projection states
         """
 
-        hidden_states = self.gated_xattn(x, media)
+        hidden_states = self.gated_xattn(x, media, use_cached_media=True)
 
         residual = hidden_states
 
