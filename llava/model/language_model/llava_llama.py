@@ -520,8 +520,6 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
 
     def forward(
         self,
-        # vision input
-        media,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -543,7 +541,9 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
                 attention_mask,
                 past_key_values,
                 inputs_embeds,
-                labels
+                labels,
+                # ToDo: prepare vision embedding
+                media
             ) = self.prepare_inputs_labels_for_multimodal(
                 input_ids,
                 position_ids,
