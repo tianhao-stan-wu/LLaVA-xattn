@@ -47,7 +47,7 @@ def FeedForward(dim, mult=4):
     return nn.Sequential(
         LlamaRMSNorm(dim),
         nn.Linear(dim, inner_dim, bias=False),
-        nn.GELU(),
+        nn.SiLU(),
         nn.Linear(inner_dim, dim, bias=False),
     )
 
@@ -59,8 +59,8 @@ class MaskedCrossAttention(nn.Module):
         *,
         text_dim,
         vision_dim,
-        head_dim=64,
-        num_heads=8,
+        head_dim=128,
+        num_heads=32,
         only_attend_immediate_media=True,
     ):
         super().__init__()
@@ -159,8 +159,8 @@ class GatedCrossAttentionBlock(nn.Module):
         *,
         text_dim,
         vision_dim,
-        head_dim=64,
-        num_heads=8,
+        head_dim=128,
+        num_heads=32,
         ff_mult=4,
         only_attend_immediate_media=True,
     ):
@@ -208,9 +208,9 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
         self.gated_xattn = GatedCrossAttentionBlock(
             text_dim=config.hidden_size,
             vision_dim=config.hidden_size,
-            head_dim=64,
-            num_heads=8,
-            ff_mult=4,
+            head_dim=128,
+            num_heads=32,
+            ff_mult=1,
             only_attend_immediate_media=True
         )
 
