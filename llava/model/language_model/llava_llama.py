@@ -68,7 +68,7 @@ class MaskedCrossAttention(nn.Module):
         self.heads = num_heads
         inner_dim = head_dim * num_heads
 
-        self.norm = nn.LlamaRMSNorm(text_dim)
+        self.norm = LlamaRMSNorm(text_dim)
 
         self.to_q = nn.Linear(text_dim, inner_dim, bias=False)
         self.to_kv = nn.Linear(vision_dim, inner_dim * 2, bias=False)
