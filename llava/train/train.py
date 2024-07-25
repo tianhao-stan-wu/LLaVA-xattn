@@ -179,6 +179,18 @@ def find_all_linear_names(model):
 
     if 'lm_head' in lora_module_names: # needed for 16-bit
         lora_module_names.remove('lm_head')
+    # remove lora for newly added layers
+    if 'to_q' in lora_module_names: 
+        lora_module_names.remove('to_q')
+    if 'to_kv' in lora_module_names: 
+        lora_module_names.remove('to_kv')
+    if 'to_out' in lora_module_names: 
+        lora_module_names.remove('to_out')
+    if '1' in lora_module_names: 
+        lora_module_names.remove('1') 
+    if '3' in lora_module_names: 
+        lora_module_names.remove('3')   
+
     return list(lora_module_names)
 
 
@@ -877,12 +889,12 @@ def train(attn_implementation=None):
             task_type="CAUSAL_LM",
         )
 
-        # debug
-        target_modules=find_all_linear_names(model)
-        print("************************************")
-        print("target modules:")
-        print(target_modules)
-        return
+        # # debug
+        # target_modules=find_all_linear_names(model)
+        # print("************************************")
+        # print("target modules:")
+        # print(target_modules)
+        # return
 
         if training_args.bits == 16:
             if training_args.bf16:
