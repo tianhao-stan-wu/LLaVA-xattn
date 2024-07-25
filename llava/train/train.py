@@ -876,6 +876,14 @@ def train(attn_implementation=None):
             bias=training_args.lora_bias,
             task_type="CAUSAL_LM",
         )
+
+        # debug
+        target_modules=find_all_linear_names(model)
+        print("************************************")
+        print("target modules:")
+        print(target_modules)
+        return
+
         if training_args.bits == 16:
             if training_args.bf16:
                 model.to(torch.bfloat16)
