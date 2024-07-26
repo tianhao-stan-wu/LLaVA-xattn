@@ -128,20 +128,6 @@ def unpad_image(tensor, original_size):
     return unpadded_tensor
 
 
-def extract_media_locations(input_ids, image_token_index):
-    """
-    Args:
-        input_ids (torch.Tensor): Input token IDs of shape (B, T_txt)
-        image_token_index (int): The index representing image tokens
-
-    Returns:
-        media_locations (torch.Tensor): Boolean mask identifying the media tokens in input_ids of shape (B, T_txt)
-    """
-    # Check for IMAGE_TOKEN_INDEX in input_ids
-    media_locations = (input_ids == image_token_index)
-    return media_locations
-
-
 class LlavaMetaForCausalLM(ABC):
 
     @abstractmethod
@@ -155,6 +141,19 @@ class LlavaMetaForCausalLM(ABC):
         image_features = self.get_model().get_vision_tower()(images)
         image_features = self.get_model().mm_projector(image_features)
         return image_features
+    
+    def extract_media_locations(self, input_ids, image_token_index):
+        """
+        Args:
+            input_ids (torch.Tensor): Input token IDs of shape (B, T_txt)
+            image_token_index (int): The index representing image tokens
+
+        Returns:
+            media_locations (torch.Tensor): Boolean mask identifying the media tokens in input_ids of shape (B, T_txt)
+        """
+        # Check for IMAGE_TOKEN_INDEX in input_ids
+        media_locations = (input_ids == image_token_index)
+        return media_locations
 
     def prepare_inputs_labels_for_multimodal(
         self, input_ids, position_ids, attention_mask, past_key_values, labels,
@@ -218,9 +217,10 @@ class LlavaMetaForCausalLM(ABC):
         # keep raw image features to inject in xattn layers
         media = image_features
 
-        media_locations = extract_media_locations(input_ids, IMAGE_TOKEN_INDEX)
+        media_locations = self.extract_media_locations(input_ids, IMAGE_TOKEN_INDEX)
 
         # debug
+
         if input_ids is not None:
             print("***********************")
             print("input_ids.shape: ", input_ids.shape)
@@ -233,6 +233,9 @@ class LlavaMetaForCausalLM(ABC):
         if labels is not None:
             print("***********************")
             print("labels.shape: ", labels.shape)
+            
+        print("***********************")
+        print("media.shape", media.shape)
 
 
         # TODO: image start / end is not implemented here to support pretraining.
