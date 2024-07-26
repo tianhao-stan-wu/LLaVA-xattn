@@ -103,6 +103,8 @@ class MaskedCrossAttention(nn.Module):
         print("************************************")
 
         T_txt = x.shape[1]
+        # media has shape [16, 576, 4096], add dimension n
+        media = media.unsqueeze(2)
         _, T_img, n = media.shape[:3]
         h = self.heads
 
@@ -224,6 +226,7 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
         # hidden_states: torch.Tensor,
         x,
         media,
+        media_locations,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
         past_key_value: Optional[Cache] = None,
@@ -246,7 +249,7 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
             past_key_value (`Tuple(torch.FloatTensor)`, *optional*): cached past key and value projection states
         """
 
-        hidden_states = self.gated_xattn(x, media, use_cached_media=True)
+        hidden_states = self.gated_xattn(x, media, media_locations)
 
         residual = hidden_states
 
@@ -295,6 +298,7 @@ class LlamaXAttnModel(LlamaModel):
         self,
         # add vision input (media)
         media,
+        media_locations,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -366,6 +370,7 @@ class LlamaXAttnModel(LlamaModel):
                     # xattn input,
                     hidden_states,
                     media,
+                    media_locations,
                     causal_mask,
                     position_ids,
                     past_key_values,
@@ -378,6 +383,7 @@ class LlamaXAttnModel(LlamaModel):
                     # xattn input,
                     x=hidden_states,
                     media=media,
+                    media_locations=media_locations,
                     attention_mask=causal_mask,
                     position_ids=position_ids,
                     past_key_value=past_key_values,
@@ -506,6 +512,7 @@ class LlamaXAttnForCausalLM(LlamaForCausalLM):
         self,
         # vision inputs
         media,
+        media_locations,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -528,6 +535,7 @@ class LlamaXAttnForCausalLM(LlamaForCausalLM):
         # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
         outputs = self.model(
             media=media,
+            media_locations=media_locations,
             input_ids=input_ids,
             attention_mask=attention_mask,
             position_ids=position_ids,
@@ -629,7 +637,8 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
                 inputs_embeds,
                 labels,
                 # ToDo: prepare vision embedding
-                media
+                media,
+                media_locations
             ) = self.prepare_inputs_labels_for_multimodal(
                 input_ids,
                 position_ids,
@@ -642,6 +651,7 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
 
         return super().forward(
             media=media,
+            media_locations=media_locations,
             input_ids=input_ids,
             attention_mask=attention_mask,
             position_ids=position_ids,

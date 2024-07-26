@@ -128,6 +128,20 @@ def unpad_image(tensor, original_size):
     return unpadded_tensor
 
 
+def extract_media_locations(input_ids, image_token_index):
+    """
+    Args:
+        input_ids (torch.Tensor): Input token IDs of shape (B, T_txt)
+        image_token_index (int): The index representing image tokens
+
+    Returns:
+        media_locations (torch.Tensor): Boolean mask identifying the media tokens in input_ids of shape (B, T_txt)
+    """
+    # Check for IMAGE_TOKEN_INDEX in input_ids
+    media_locations = (input_ids == image_token_index)
+    return media_locations
+
+
 class LlavaMetaForCausalLM(ABC):
 
     @abstractmethod
@@ -204,9 +218,25 @@ class LlavaMetaForCausalLM(ABC):
         # keep raw image features to inject in xattn layers
         media = image_features
 
+        media_locations = extract_media_locations(input_ids, IMAGE_TOKEN_INDEX)
+
+        # debug
+        print("***********************")
+        print("input_ids.shape: ", input_ids.shape)
+        print("***********************")
+        print("position_ids.shape: ", position_ids.shape)
+        print("***********************")
+        print("attention_mask.shape: ", attention_mask.shape)
+        print("***********************")
+        print("labels.shape: ", labels.shape)
+        print("***********************")
+
         # TODO: image start / end is not implemented here to support pretraining.
         if getattr(self.config, 'tune_mm_mlp_adapter', False) and getattr(self.config, 'mm_use_im_start_end', False):
             raise NotImplementedError
+        
+        # use raw text input as query for xattn
+        return input_ids, position_ids, attention_mask, past_key_values, None, labels, media, media_locations
 
         # Let's just add dummy tensors if they do not exist,
         # it is a headache to deal with None all the time.
