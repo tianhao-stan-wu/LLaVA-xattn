@@ -221,15 +221,19 @@ class LlavaMetaForCausalLM(ABC):
         media_locations = extract_media_locations(input_ids, IMAGE_TOKEN_INDEX)
 
         # debug
-        print("***********************")
-        print("input_ids.shape: ", input_ids.shape)
-        print("***********************")
-        print("position_ids.shape: ", position_ids.shape)
-        print("***********************")
-        print("attention_mask.shape: ", attention_mask.shape)
-        print("***********************")
-        print("labels.shape: ", labels.shape)
-        print("***********************")
+        if input_ids is not None:
+            print("***********************")
+            print("input_ids.shape: ", input_ids.shape)
+        if position_ids is not None:
+            print("***********************")
+            print("position_ids.shape: ", position_ids.shape)
+        if attention_mask is not None:
+            print("***********************")
+            print("attention_mask.shape: ", attention_mask.shape)
+        if labels is not None:
+            print("***********************")
+            print("labels.shape: ", labels.shape)
+
 
         # TODO: image start / end is not implemented here to support pretraining.
         if getattr(self.config, 'tune_mm_mlp_adapter', False) and getattr(self.config, 'mm_use_im_start_end', False):
