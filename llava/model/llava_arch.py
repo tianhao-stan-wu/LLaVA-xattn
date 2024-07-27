@@ -214,28 +214,18 @@ class LlavaMetaForCausalLM(ABC):
         else:
             image_features = self.encode_images(images)
 
+        # position_ids is None
+        # input_ids, attention_mask, labels shape: [16, 291]
+
         # keep raw image features to inject in xattn layers
         # media shape: [16, 576(24^2), 4096]
         media = image_features
-
-        # position_ids is None
-        # input_ids, attention_mask, labels shape: [16, 291]
+        # media_locations shape: [16, 291]
         media_locations = self.extract_media_locations(input_ids, IMAGE_TOKEN_INDEX)
-        print("*******************************")
-        print("media_locations shape:", media_locations.shape)
-        print("media_locations[0]:", media_locations[0])
-        print("*******************************")
-        print("input_ids[0]:", input_ids[0])
-        print("attention_mask[0]:", attention_mask[0])
-        print("labels[0]:", labels[0])
-        print("*******************************")
 
         # TODO: image start / end is not implemented here to support pretraining.
         if getattr(self.config, 'tune_mm_mlp_adapter', False) and getattr(self.config, 'mm_use_im_start_end', False):
             raise NotImplementedError
-        
-        # use raw text input as query for xattn
-        # return None, position_ids, attention_mask, past_key_values, None, labels, media, media_locations
 
         # Let's just add dummy tensors if they do not exist,
         # it is a headache to deal with None all the time.
@@ -255,9 +245,7 @@ class LlavaMetaForCausalLM(ABC):
 
         # remove the padding using attention_mask -- FIXME
         _input_ids = input_ids
-        # [16, 291]
         input_ids = [cur_input_ids[cur_attention_mask] for cur_input_ids, cur_attention_mask in zip(input_ids, attention_mask)]
-        # [16, 291]
         labels = [cur_labels[cur_attention_mask] for cur_labels, cur_attention_mask in zip(labels, attention_mask)]
 
         new_input_embeds = []
@@ -265,14 +253,16 @@ class LlavaMetaForCausalLM(ABC):
         cur_image_idx = 0
         for batch_idx, cur_input_ids in enumerate(input_ids):
             num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
-            if num_images == 0:
-                cur_image_features = image_features[cur_image_idx]
-                cur_input_embeds_1 = self.get_model().embed_tokens(cur_input_ids)
-                cur_input_embeds = torch.cat([cur_input_embeds_1, cur_image_features[0:0]], dim=0)
-                new_input_embeds.append(cur_input_embeds)
-                new_labels.append(labels[batch_idx])
-                cur_image_idx += 1
-                continue
+
+            # keep image token as it is in input_ids, fusion at xattn later
+            # if num_images == 0:
+            cur_image_features = image_features[cur_image_idx]
+            cur_input_embeds_1 = self.get_model().embed_tokens(cur_input_ids)
+            cur_input_embeds = torch.cat([cur_input_embeds_1, cur_image_features[0:0]], dim=0)
+            new_input_embeds.append(cur_input_embeds)
+            new_labels.append(labels[batch_idx])
+            cur_image_idx += 1
+            continue
 
             image_token_indices = [-1] + torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist() + [cur_input_ids.shape[0]]
             cur_input_ids_noim = []
@@ -355,16 +345,12 @@ class LlavaMetaForCausalLM(ABC):
         if _position_ids is None:
             position_ids = None
 
-        print("*******************************")
-        print("attention_mask.shape:", attention_mask.shape)
-        print("attention_mask[0]:", attention_mask[0])
-        print("new_input_embeds.shape:", new_input_embeds.shape)
-        print("new_input_embeds[0]:", new_input_embeds[0])
-        print("new_labels.shape:", new_labels.shape)
-        print("new_labels[0]:", new_labels[0])
-        print("*******************************")
+        # attention_mask [16, 866]
+        # new_input_embeds [16, 866, 4096]
+        # new_labels [16, 866]
+        print("in llava_arch : attention_mask.shape: ", attention_mask.shape, "new_input_embeds.shape: ", new_input_embeds.shape, "new_labels.shape: ", new_labels.shape)
 
-        return None, position_ids, attention_mask, past_key_values, new_input_embeds, new_labels, media
+        return None, position_ids, attention_mask, past_key_values, new_input_embeds, new_labels, media, media_locations
 
     def initialize_vision_tokenizer(self, model_args, tokenizer):
         if model_args.mm_use_im_patch_token:
