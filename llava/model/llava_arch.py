@@ -253,7 +253,8 @@ class LlavaMetaForCausalLM(ABC):
         cur_image_idx = 0
         for batch_idx, cur_input_ids in enumerate(input_ids):
             # replace IMAGE_TOKEN_INDEX
-            cur_input_ids = torch.where(cur_input_ids == IMAGE_TOKEN_INDEX, torch.tensor(self.image_id, dtype=cur_input_ids.dtype), cur_input_ids)
+            print(self.image_id)
+            cur_input_ids = torch.where(cur_input_ids == IMAGE_TOKEN_INDEX, torch.tensor(3027, dtype=cur_input_ids.dtype), cur_input_ids)
             print("cur_input_ids", cur_input_ids)
             num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
             print("num_images", num_images)
