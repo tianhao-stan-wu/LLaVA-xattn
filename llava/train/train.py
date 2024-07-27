@@ -1007,7 +1007,8 @@ def train(attn_implementation=None):
     
     token_img = ['image']
     model.image_id = tokenizer.convert_tokens_to_ids(token_img)
-    print("image_id: ", model.image_id, "type:", model.image_id.type())
+    print("image_id: ", model.image_id)
+    print("type:", model.image_id[0].type())
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
