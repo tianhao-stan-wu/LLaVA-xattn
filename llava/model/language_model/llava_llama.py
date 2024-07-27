@@ -105,6 +105,7 @@ class MaskedCrossAttention(nn.Module):
         T_txt = x.shape[1]
         # media has shape [16, 576, 4096], add dimension n
         media = media.unsqueeze(2)
+        # now media has shape [16, 576, 1, 4096]
         _, T_img, n = media.shape[:3]
         h = self.heads
 

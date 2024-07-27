@@ -215,35 +215,27 @@ class LlavaMetaForCausalLM(ABC):
             image_features = self.encode_images(images)
 
         # keep raw image features to inject in xattn layers
+        # media shape: [16, 576(24^2), 4096]
         media = image_features
 
+        # position_ids is None
+        # input_ids, attention_mask, labels shape: [16, 291]
         media_locations = self.extract_media_locations(input_ids, IMAGE_TOKEN_INDEX)
-
-        # debug
-
-        if input_ids is not None:
-            print("***********************")
-            print("input_ids.shape: ", input_ids.shape)
-        if position_ids is not None:
-            print("***********************")
-            print("position_ids.shape: ", position_ids.shape)
-        if attention_mask is not None:
-            print("***********************")
-            print("attention_mask.shape: ", attention_mask.shape)
-        if labels is not None:
-            print("***********************")
-            print("labels.shape: ", labels.shape)
-            
-        print("***********************")
-        print("media.shape", media.shape)
-
+        print("*******************************")
+        print("media_locations shape:", media_locations.shape)
+        print("media_locations[0]:", media_locations[0])
+        print("*******************************")
+        print("input_ids[0]:", input_ids[0])
+        print("attention_mask[0]:", attention_mask[0])
+        print("labels[0]:", labels[0])
+        print("*******************************")
 
         # TODO: image start / end is not implemented here to support pretraining.
         if getattr(self.config, 'tune_mm_mlp_adapter', False) and getattr(self.config, 'mm_use_im_start_end', False):
             raise NotImplementedError
         
         # use raw text input as query for xattn
-        return input_ids, position_ids, attention_mask, past_key_values, None, labels, media, media_locations
+        # return None, position_ids, attention_mask, past_key_values, None, labels, media, media_locations
 
         # Let's just add dummy tensors if they do not exist,
         # it is a headache to deal with None all the time.
@@ -263,7 +255,9 @@ class LlavaMetaForCausalLM(ABC):
 
         # remove the padding using attention_mask -- FIXME
         _input_ids = input_ids
+        # [16, 291]
         input_ids = [cur_input_ids[cur_attention_mask] for cur_input_ids, cur_attention_mask in zip(input_ids, attention_mask)]
+        # [16, 291]
         labels = [cur_labels[cur_attention_mask] for cur_labels, cur_attention_mask in zip(labels, attention_mask)]
 
         new_input_embeds = []
@@ -360,6 +354,15 @@ class LlavaMetaForCausalLM(ABC):
 
         if _position_ids is None:
             position_ids = None
+
+        print("*******************************")
+        print("attention_mask.shape:", attention_mask.shape)
+        print("attention_mask[0]:", attention_mask[0])
+        print("new_input_embeds.shape:", new_input_embeds.shape)
+        print("new_input_embeds[0]:", new_input_embeds[0])
+        print("new_labels.shape:", new_labels.shape)
+        print("new_labels[0]:", new_labels[0])
+        print("*******************************")
 
         return None, position_ids, attention_mask, past_key_values, new_input_embeds, new_labels, media
 
