@@ -40,7 +40,7 @@ deepspeed llava/train/train_mem.py \
     --mm_use_im_patch_token False \
     --image_aspect_ratio pad \
     --bf16 True \
-    --output_dir ./checkpoints/test/llama_xattn_v1 \
+    --output_dir ./checkpoints/test/llava-v1.5-7b-lora-xattn \
     --num_train_epochs 1 \
     --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 4 \
