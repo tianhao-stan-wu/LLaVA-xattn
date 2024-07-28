@@ -684,7 +684,9 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
                 attention_mask,
                 _,
                 inputs_embeds,
-                _
+                _,
+                media,
+                media_locations
             ) = self.prepare_inputs_labels_for_multimodal(
                 inputs,
                 position_ids,
