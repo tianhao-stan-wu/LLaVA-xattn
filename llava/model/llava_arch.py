@@ -220,7 +220,7 @@ class LlavaMetaForCausalLM(ABC):
         # keep raw image features to inject in xattn layers
         # media shape: [16, 576(24^2), 4096]
         media = image_features
-        # media_locations shape: [16, 291]
+        # media_locations shape: [16, 291], same as input_ids
         media_locations = self.extract_media_locations(input_ids, IMAGE_TOKEN_INDEX)
 
         # TODO: image start / end is not implemented here to support pretraining.
@@ -253,11 +253,8 @@ class LlavaMetaForCausalLM(ABC):
         cur_image_idx = 0
         for batch_idx, cur_input_ids in enumerate(input_ids):
             # replace IMAGE_TOKEN_INDEX
-            print(self.image_id)
-            cur_input_ids = torch.where(cur_input_ids == IMAGE_TOKEN_INDEX, torch.tensor(3027, dtype=cur_input_ids.dtype), cur_input_ids)
-            print("cur_input_ids", cur_input_ids)
+            cur_input_ids = torch.where(cur_input_ids == IMAGE_TOKEN_INDEX, torch.tensor(self.image_id, dtype=cur_input_ids.dtype), cur_input_ids)
             num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
-            print("num_images", num_images)
             # keep image token as it is in input_ids, fusion at xattn later
             if num_images == 0:
                 cur_image_features = image_features[cur_image_idx]
@@ -300,7 +297,7 @@ class LlavaMetaForCausalLM(ABC):
             new_input_embeds.append(cur_new_input_embeds)
             new_labels.append(cur_new_labels)
 
-        print("new_input_embeds[0].shape: ", new_input_embeds[0].shape)
+        # print("new_input_embeds[0].shape: ", new_input_embeds[0].shape)
 
         # Truncate sequences to max length as image embeddings can make the sequence longer
         tokenizer_model_max_length = getattr(self.config, 'tokenizer_model_max_length', None)
@@ -353,9 +350,6 @@ class LlavaMetaForCausalLM(ABC):
         if _position_ids is None:
             position_ids = None
 
-        # attention_mask [16, 866]
-        # new_input_embeds [16, 866, 4096]
-        # new_labels [16, 866]
         print("in llava_arch : attention_mask.shape: ", attention_mask.shape, "new_input_embeds.shape: ", new_input_embeds.shape, "new_labels.shape: ", new_labels.shape)
 
         return None, position_ids, attention_mask, past_key_values, new_input_embeds, new_labels, media, media_locations

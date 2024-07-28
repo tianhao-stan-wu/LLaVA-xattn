@@ -858,6 +858,10 @@ def train(attn_implementation=None):
         )
     model.config.use_cache = False
 
+    token_img = ['image']
+    model.image_id = tokenizer.convert_tokens_to_ids(token_img)[0]
+    # image_id: 3027, type: int
+
     print("***************")
     print("* 2 completes *")
     print("***************")
@@ -1004,10 +1008,6 @@ def train(attn_implementation=None):
                     tokenizer=tokenizer,
                     args=training_args,
                     **data_module)
-    
-    token_img = ['image']
-    model.image_id = tokenizer.convert_tokens_to_ids(token_img)[0]
-    # image_id: 3027, type: int
 
     if list(pathlib.Path(training_args.output_dir).glob("checkpoint-*")):
         trainer.train(resume_from_checkpoint=True)
