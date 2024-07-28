@@ -350,7 +350,7 @@ class LlavaMetaForCausalLM(ABC):
         if _position_ids is None:
             position_ids = None
 
-        print("in llava_arch : attention_mask.shape: ", attention_mask.shape, "new_input_embeds.shape: ", new_input_embeds.shape, "new_labels.shape: ", new_labels.shape)
+        # print("in llava_arch : attention_mask.shape: ", attention_mask.shape, "new_input_embeds.shape: ", new_input_embeds.shape, "new_labels.shape: ", new_labels.shape)
 
         return None, position_ids, attention_mask, past_key_values, new_input_embeds, new_labels, media, media_locations
 
