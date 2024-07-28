@@ -858,10 +858,6 @@ def train(attn_implementation=None):
         )
     model.config.use_cache = False
 
-    token_img = ['image']
-    model.image_id = tokenizer.convert_tokens_to_ids(token_img)[0]
-    # image_id: 3027, type: int
-
     print("***************")
     print("* 2 completes *")
     print("***************")
@@ -1003,6 +999,10 @@ def train(attn_implementation=None):
     print("***************")
     print("* 5 completes *")
     print("***************")
+
+    token_img = ['image']
+    model.image_id = tokenizer.convert_tokens_to_ids(token_img)[0]
+    # image_id: 3027, type: int
 
     trainer = LLaVATrainer(model=model,
                     tokenizer=tokenizer,
