@@ -34,7 +34,7 @@ from einops_exts import rearrange_many
 from torch import einsum, nn
 
 from transformers.models.llama.modeling_llama import LlamaDecoderLayer, LlamaRMSNorm
-from transformers.cache_utils import Cache, DynamicCache
+from transformers.cache_utils import Cache, DynamicCache, StaticCache
 from transformers.modeling_outputs import BaseModelOutputWithPast
 
 
