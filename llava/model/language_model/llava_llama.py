@@ -614,6 +614,8 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
 
     def forward(
         self,
+        media: Optional[torch.FloatTensor] = None,
+        media_locations: Optional[torch.LongTensor] = None,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -714,6 +716,8 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
                                       inputs_embeds=None, **kwargs):
         images = kwargs.pop("images", None)
         image_sizes = kwargs.pop("image_sizes", None)
+        media = kwargs.pop("media", None)
+        media_locations = kwargs.pop("media_locations", None)
         inputs = super().prepare_inputs_for_generation(
             input_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, **kwargs
         )
@@ -721,6 +725,10 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
             inputs['images'] = images
         if image_sizes is not None:
             inputs['image_sizes'] = image_sizes
+        if media is not None:
+            inputs['media'] = media
+        if media_locations is not None:
+            inputs['media_locations'] = media_locations
         return inputs
 
 AutoConfig.register("llava_llama", LlavaConfig)
