@@ -322,9 +322,10 @@ class LlamaXAttnModel(LlamaModel):
             )
 
         if self.gradient_checkpointing and self.training and use_cache:
-            logger.warning_once(
-                "`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`."
-            )
+            # logger.warning_once(
+            #     "`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`."
+            # )
+            print("`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`.")
             use_cache = False
 
         if inputs_embeds is None:
@@ -334,10 +335,11 @@ class LlamaXAttnModel(LlamaModel):
         if use_cache and not isinstance(past_key_values, Cache):  # kept for BC (non `Cache` `past_key_values` inputs)
             return_legacy_cache = True
             past_key_values = DynamicCache.from_legacy_cache(past_key_values)
-            logger.warning_once(
-                "We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be removed in v4.43. "
-                "Please use an appropriate `Cache` class (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)"
-            )
+            # logger.warning_once(
+            #     "We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be removed in v4.43. "
+            #     "Please use an appropriate `Cache` class (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)"
+            # )
+            print("We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be removed in v4.43. Please use an appropriate `Cache` class (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)")
 
         if cache_position is None:
             past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
