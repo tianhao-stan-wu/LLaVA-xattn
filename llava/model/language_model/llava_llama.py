@@ -34,10 +34,10 @@ from einops_exts import rearrange_many
 from torch import einsum, nn
 
 from transformers.models.llama.modeling_llama import LlamaDecoderLayer, LlamaRMSNorm
-from transformers.cache_utils import Cache, DynamicCache, StaticCache
+from transformers.cache_utils import Cache, DynamicCache
 from transformers.modeling_outputs import BaseModelOutputWithPast
 from transformers.utils import logging
-from transformers.modeling_attn_mask_utils import AttentionMaskConverter
+# from transformers.modeling_attn_mask_utils import AttentionMaskConverter
 
 
 logger = logging.get_logger(__name__)
@@ -446,7 +446,8 @@ class LlamaXAttnModel(LlamaModel):
         # order to dispatch on Flash Attention 2. This feature is not compatible with static cache, as SDPA will fail
         # to infer the attention mask.
         past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
-        using_static_cache = isinstance(past_key_values, StaticCache)
+        # using_static_cache = isinstance(past_key_values, StaticCache)
+        using_static_cache = False
 
         # When output attentions is True, sdpa implementation's forward method calls the eager implementation's forward
         if self.config._attn_implementation == "sdpa" and not using_static_cache and not output_attentions:
