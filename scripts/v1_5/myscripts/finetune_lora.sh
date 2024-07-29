@@ -5,6 +5,13 @@ source dataset/vstanwu/miniconda3/etc/profile.d/conda.sh
 conda activate llava-xattn || { echo "Failed to activate conda env"; exit 1; }
 echo "conda env llava-xattn activated"
 
+API_KEY="65927b6f8f24622601e9bac3d27a7b08f860dcb5"
+wandb login <<EOF
+$API_KEY
+EOF
+
+echo "Logged into wandb successfully!"
+WANDB_PROJECT=llava-v1.5-7b-lora-xattn-ft150k-v1
 
 # Export the LD_LIBRARY_PATH and check if it was successful
 export LD_LIBRARY_PATH=/dataset/vstanwu/miniconda3/envs/llava-xattn/lib/python3.10/site-packages/nvidia/cudnn/lib:$LD_LIBRARY_PATH
@@ -59,7 +66,9 @@ deepspeed llava/train/train_mem.py \
     --gradient_checkpointing True \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
-    --report_to none
+    --report_to wandb
+
+
 
 echo " "
 echo "********************************"

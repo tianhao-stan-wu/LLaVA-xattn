@@ -109,7 +109,7 @@ class MaskedCrossAttention(nn.Module):
             ), f"media_location.shape is {media_locations.shape} but x.shape is {x.shape}"
 
         # debug
-        print("in MaskedCrossAttention: x.shape: ", x.shape, "  media.shape: ", media.shape)
+        # print("in MaskedCrossAttention: x.shape: ", x.shape, "  media.shape: ", media.shape)
 
         T_txt = x.shape[1]
         # media has shape [16, 576, 4096], add dimension n
