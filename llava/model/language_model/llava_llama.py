@@ -80,6 +80,11 @@ class MaskedCrossAttention(nn.Module):
         self.to_kv = nn.Linear(vision_dim, inner_dim * 2, bias=False)
         self.to_out = nn.Linear(inner_dim, text_dim, bias=False)
 
+        # Xavier Initialization
+        nn.init.xavier_uniform_(self.to_q.weight)
+        nn.init.xavier_uniform_(self.to_kv.weight)
+        nn.init.xavier_uniform_(self.to_out.weight)
+
         # whether for text to only attend to immediate preceding image, or all previous images
         self.only_attend_immediate_media = only_attend_immediate_media
 
