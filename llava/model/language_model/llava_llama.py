@@ -21,8 +21,7 @@ import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 
 from transformers import AutoConfig, AutoModelForCausalLM, \
-                         LlamaConfig, LlamaModel, LlamaForCausalLM, \
-                         AttentionMaskConverter
+                         LlamaConfig, LlamaModel, LlamaForCausalLM
 
 from transformers.modeling_outputs import CausalLMOutputWithPast
 from transformers.generation.utils import GenerateOutput
@@ -38,6 +37,7 @@ from transformers.models.llama.modeling_llama import LlamaDecoderLayer, LlamaRMS
 from transformers.cache_utils import Cache, DynamicCache, StaticCache
 from transformers.modeling_outputs import BaseModelOutputWithPast
 from transformers.utils import logging
+from transformers.modeling_attn_mask_utils import AttentionMaskConverter
 
 
 logger = logging.get_logger(__name__)
