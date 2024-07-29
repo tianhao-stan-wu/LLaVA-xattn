@@ -124,7 +124,7 @@ if __name__ == "__main__":
     parser.add_argument("--user-question", type=str, default=None)
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--conv-mode", type=str, default=None)
-    parser.add_argument("--temperature", type=float, default=0.2)
+    parser.add_argument("--temperature", type=float, default=0.95)
     parser.add_argument("--max-new-tokens", type=int, default=512)
     parser.add_argument("--load-8bit", action="store_true")
     parser.add_argument("--load-4bit", action="store_true")
