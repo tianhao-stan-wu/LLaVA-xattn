@@ -67,6 +67,20 @@ def check_invalid_values(hidden_states):
     return False
 
 
+def count_nan_values(tensor):
+    """
+    Counts the number of nan values in the tensor.
+
+    Args:
+        tensor (torch.Tensor): The input tensor to check.
+
+    Returns:
+        int: The number of nan values in the tensor.
+    """
+    nan_count = torch.isnan(tensor).sum().item()
+    return nan_count
+
+
 def exists(val):
     return val is not None
 
@@ -133,14 +147,17 @@ class MaskedCrossAttention(nn.Module):
 
         # debug
         # print("in MaskedCrossAttention: x.shape: ", x.shape, "  media.shape: ", media.shape)
+        print("********************")
         if x is not None:
             print("in MaskedCrossAttention: x.shape:", x.shape)
+            print("count nan values for x:", count_nan_values(x))
         if media is not None:
             print("in MaskedCrossAttention: media.shape:", media.shape)
-            print("in MaskedCrossAttention: media[0][0]:", media[0][0])
+            print("count nan values for media:", count_nan_values(media))
         if media_locations is not None:
             print("in MaskedCrossAttention: media_locations.shape:", media_locations.shape)
-            print("media_locations[0]:", media_locations[0])
+            print("count nan values for media_locations:", count_nan_values(media_locations))
+        print("********************")
 
         T_txt = x.shape[1]
         # media has shape [16, 576, 4096], add dimension n
@@ -150,16 +167,22 @@ class MaskedCrossAttention(nn.Module):
         h = self.heads
 
         x = self.norm(x)
+        print("x 169:", count_nan_values(x))
 
         q = self.to_q(x)
+        print("q 172:", count_nan_values(q))
         media = rearrange(media, "b t n d -> b (t n) d")
 
         k, v = self.to_kv(media).chunk(2, dim=-1)
+        print("k 176:", count_nan_values(k))
+        print("v 176:", count_nan_values(v))
         q, k, v = rearrange_many((q, k, v), "b n (h d) -> b h n d", h=h)
 
         q = q * self.scale
+        print("q 181:", count_nan_values(q))
 
         sim = einsum("... i d, ... j d -> ... i j", q, k)
+        print("sim 184:", count_nan_values(sim))
 
         if exists(media_locations):
             media_time = torch.arange(T_img, device=x.device) + 1
@@ -187,6 +210,7 @@ class MaskedCrossAttention(nn.Module):
 
         sim = sim - sim.amax(dim=-1, keepdim=True).detach()
         attn = sim.softmax(dim=-1)
+        print("attn 212:", count_nan_values(attn))
 
         if exists(media_locations) and self.only_attend_immediate_media:
             # any text without a preceding media needs to have attention zeroed out
@@ -195,6 +219,7 @@ class MaskedCrossAttention(nn.Module):
                 text_without_media_mask, "b i -> b 1 i 1"
             )
             attn = attn.masked_fill(text_without_media_mask, 0.0)
+            print("<< not supposed to be here >>")
 
         out = einsum("... i j, ... j d -> ... i d", attn, v)
         out = rearrange(out, "b h n d -> b n (h d)")
