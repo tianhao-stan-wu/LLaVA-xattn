@@ -110,6 +110,14 @@ class MaskedCrossAttention(nn.Module):
 
         # debug
         # print("in MaskedCrossAttention: x.shape: ", x.shape, "  media.shape: ", media.shape)
+        if x is not None:
+            print("in MaskedCrossAttention: x.shape:", x.shape)
+        if media is not None:
+            print("in MaskedCrossAttention: media.shape:", media.shape)
+            print("Min askedCrossAttention: media[0][0]:", media[0][0])
+        if media_locations is not None:
+            print("in MaskedCrossAttention: media_locations.shape:", media_locations.shape)
+            print("media_locations[0]:", media_locations[0])
 
         T_txt = x.shape[1]
         # media has shape [16, 576, 4096], add dimension n
