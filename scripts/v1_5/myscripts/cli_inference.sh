@@ -26,7 +26,7 @@ echo "***********************************"
 echo " "
 
 python -m llava.serve.cli \
-    --model-path ./checkpoints/test/llava-v1.5-7b-lora-xattn-merged \
+    --model-path ./checkpoints/llava-v1.5-7b-lora-xattn-ft150k-v1-merged \
     --image-file "https://llava-vl.github.io/static/images/view.jpg" \
     --load-4bit \
     --user-question "What are the things I should be cautious when I visit this place?"
