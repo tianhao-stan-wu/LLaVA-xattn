@@ -254,6 +254,7 @@ class LlavaMetaForCausalLM(ABC):
         for batch_idx, cur_input_ids in enumerate(input_ids):
             # replace IMAGE_TOKEN_INDEX
             cur_input_ids = torch.where(cur_input_ids == IMAGE_TOKEN_INDEX, torch.tensor(self.image_id, dtype=cur_input_ids.dtype), cur_input_ids)
+            print("in llava_arch line 257:", cur_input_ids)
             num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
             # keep image token as it is in input_ids, fusion at xattn later
             if num_images == 0:

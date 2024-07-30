@@ -44,6 +44,29 @@ from .cache import StaticCache
 
 logger = logging.get_logger(__name__)
 
+
+def check_invalid_values(hidden_states):
+    """
+    Checks if the tensor contains any inf, nan, or elements less than 0.
+
+    Args:
+        tensor (torch.Tensor): The input tensor to check.
+
+    Returns:
+        bool: True if the tensor contains invalid values, False otherwise.
+    """
+    if torch.isinf(hidden_states).any():
+        print("hidden_states contains 'inf' values.")
+        return True
+    if torch.isnan(hidden_states).any():
+        print("hidden_states contains 'nan' values.")
+        return True
+    if (hidden_states < 0).any():
+        print("hidden_states contains elements less than 0.")
+        return True
+    return False
+
+
 def exists(val):
     return val is not None
 
@@ -114,7 +137,7 @@ class MaskedCrossAttention(nn.Module):
             print("in MaskedCrossAttention: x.shape:", x.shape)
         if media is not None:
             print("in MaskedCrossAttention: media.shape:", media.shape)
-            print("Min askedCrossAttention: media[0][0]:", media[0][0])
+            print("in MaskedCrossAttention: media[0][0]:", media[0][0])
         if media_locations is not None:
             print("in MaskedCrossAttention: media_locations.shape:", media_locations.shape)
             print("media_locations[0]:", media_locations[0])
@@ -175,6 +198,8 @@ class MaskedCrossAttention(nn.Module):
 
         out = einsum("... i j, ... j d -> ... i d", attn, v)
         out = rearrange(out, "b h n d -> b n (h d)")
+        if(check_invalid_values(self.to_out(out))):
+            print("in MaskedCrossAttention")
         return self.to_out(out)
 
 
@@ -220,6 +245,9 @@ class GatedCrossAttentionBlock(nn.Module):
             + x
         )
         x = self.ff(x) * self.ff_gate.tanh() + x
+
+        if(check_invalid_values(x)):
+            print("in GatedCrossAttentionBlock")
 
         return x
 
@@ -290,6 +318,9 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
         hidden_states = self.post_attention_layernorm(hidden_states)
         hidden_states = self.mlp(hidden_states)
         hidden_states = residual + hidden_states
+
+        if(check_invalid_values(hidden_states)):
+            print("in LlamaXAttnDecoderLayer")
 
         outputs = (hidden_states,)
 

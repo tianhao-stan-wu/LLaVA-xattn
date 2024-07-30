@@ -99,7 +99,6 @@ def main(args):
         print(input_ids.shape, input_ids)
         print(image_tensor.shape, image_tensor)
         print([image_size])
-        break
 
         with torch.inference_mode():
             output_ids = model.generate(
