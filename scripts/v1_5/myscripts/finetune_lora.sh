@@ -11,7 +11,6 @@ $API_KEY
 EOF
 
 echo "Logged into wandb successfully!"
-WANDB_PROJECT=llava-v1.5-7b-lora-xattn-ft150k-v1
 
 # Export the LD_LIBRARY_PATH and check if it was successful
 export LD_LIBRARY_PATH=/dataset/vstanwu/miniconda3/envs/llava-xattn/lib/python3.10/site-packages/nvidia/cudnn/lib:$LD_LIBRARY_PATH
