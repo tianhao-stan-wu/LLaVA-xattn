@@ -805,7 +805,7 @@ def train(attn_implementation=None):
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     # add wandb project name
-    os.environ["WANDB_PROJECT"]="llava-v1.5-7b-lora-xattn-ft150k-v2"
+    os.environ["WANDB_PROJECT"]="test/debug"
 
     print("***************")
     print("* 1 completes *")

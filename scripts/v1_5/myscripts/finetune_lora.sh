@@ -31,13 +31,19 @@ echo "* running finetuning script... *"
 echo "********************************"
 echo " "
 
+# --data_path ./test_dataset/llava_instruct_150k.json \
+# --image_folder ../../sharedir/research/coco2017/train2017 \
+
+# --data_path ./test_dataset/llava_instruct_10.json \
+# --image_folder ./test_dataset \
+
 deepspeed llava/train/train_mem.py \
     --lora_enable True --lora_r 128 --lora_alpha 256 --mm_projector_lr 2e-5 \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path lmsys/vicuna-7b-v1.5 \
     --version v1 \
-    --data_path ./test_dataset/llava_instruct_150k.json \
-    --image_folder ../../sharedir/research/coco2017/train2017 \
+    --data_path ./test_dataset/llava_instruct_10.json \
+    --image_folder ./test_dataset \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --pretrain_mm_mlp_adapter ./checkpoints/llava-v1.5-7b-pretrain/mm_projector.bin \
     --mm_projector_type mlp2x_gelu \
@@ -46,7 +52,7 @@ deepspeed llava/train/train_mem.py \
     --mm_use_im_patch_token False \
     --image_aspect_ratio pad \
     --bf16 True \
-    --output_dir ./checkpoints/llava-v1.5-7b-lora-xattn-ft150k-v1 \
+    --output_dir ./checkpoints/test/debug \
     --num_train_epochs 1 \
     --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 4 \
