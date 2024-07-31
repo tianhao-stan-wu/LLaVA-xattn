@@ -47,47 +47,24 @@ logger = logging.get_logger(__name__)
 
 
 def check_invalid_values(hidden_states):
-    """
-    Checks if the tensor contains any inf, nan, or elements less than 0.
 
-    Args:
-        tensor (torch.Tensor): The input tensor to check.
-
-    Returns:
-        bool: True if the tensor contains invalid values, False otherwise.
-    """
+    invalid = False
     if torch.isinf(hidden_states).any():
         print("hidden_states contains 'inf' values.")
-        return True
+        invalid = True
     if torch.isnan(hidden_states).any():
         print("hidden_states contains 'nan' values.")
-        return True
+        invalid = True
     if (hidden_states < 0).any():
         print("hidden_states contains elements less than 0.")
-        return True
-    return False
+        invalid = True
+    return invalid
 
 
 def count_nan_values(tensor):
-    """
-    Counts the number of nan values in the tensor.
 
-    Args:
-        tensor (torch.Tensor): The input tensor to check.
-
-    Returns:
-        int: The number of nan values in the tensor.
-    """
     nan_count = torch.isnan(tensor).sum().item()
     return nan_count
-
-
-def save_tensor_with_versioning(tensor, base_path, base_filename):
-    file_path = os.path.join(base_path, f"{base_filename}.pt")
-    if os.path.exists(file_path):
-        return
-    torch.save(tensor, file_path)
-    print(f"Tensor saved to {file_path}")
 
 
 def exists(val):
@@ -156,17 +133,17 @@ class MaskedCrossAttention(nn.Module):
 
         # debug
         # print("in MaskedCrossAttention: x.shape: ", x.shape, "  media.shape: ", media.shape)
-        print("********************")
-        if x is not None:
-            print("in MaskedCrossAttention: x.shape:", x.shape)
-            print("count nan values for x:", count_nan_values(x))
-        if media is not None:
-            print("in MaskedCrossAttention: media.shape:", media.shape)
-            print("count nan values for media:", count_nan_values(media))
-        if media_locations is not None:
-            print("in MaskedCrossAttention: media_locations.shape:", media_locations.shape)
-            print("count nan values for media_locations:", count_nan_values(media_locations))
-        print("********************")
+        # print("********************")
+        # if x is not None:
+        #     print("in MaskedCrossAttention: x.shape:", x.shape)
+        #     print("count nan values for x:", count_nan_values(x))
+        # if media is not None:
+        #     print("in MaskedCrossAttention: media.shape:", media.shape)
+        #     print("count nan values for media:", count_nan_values(media))
+        # if media_locations is not None:
+        #     print("in MaskedCrossAttention: media_locations.shape:", media_locations.shape)
+        #     print("count nan values for media_locations:", count_nan_values(media_locations))
+        # print("********************")
 
         T_txt = x.shape[1]
         # media has shape [16, 576, 4096], add dimension n
@@ -175,13 +152,12 @@ class MaskedCrossAttention(nn.Module):
         _, T_img, n = media.shape[:3]
         h = self.heads
 
-        base_path = './debug'
-        base_filename = 'x_before_rms'
-
-        save_tensor_with_versioning(x, base_path, base_filename)
         x = self.norm(x)
-        base_filename = 'x_after_rms'
-        save_tensor_with_versioning(x, base_path, base_filename)
+        torch.set_printoptions(threshold=torch.numel(x))  # Set the print threshold to the number of elements in the tensor
+        print(x)
+        torch.set_printoptions(profile="default")  # Reset print options to default after printing
+        num_zeros = (x == 0).sum().item()
+        print("Number of 0.0000e+00 values:", num_zeros)
         print("x 169:", count_nan_values(x))
 
 

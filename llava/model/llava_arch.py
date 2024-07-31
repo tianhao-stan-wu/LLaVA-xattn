@@ -254,7 +254,6 @@ class LlavaMetaForCausalLM(ABC):
         for batch_idx, cur_input_ids in enumerate(input_ids):
             # replace IMAGE_TOKEN_INDEX
             cur_input_ids = torch.where(cur_input_ids == IMAGE_TOKEN_INDEX, torch.tensor(self.image_id, dtype=cur_input_ids.dtype), cur_input_ids)
-            print("in llava_arch line 257:", cur_input_ids)
             num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
             # keep image token as it is in input_ids, fusion at xattn later
             if num_images == 0:
@@ -266,7 +265,7 @@ class LlavaMetaForCausalLM(ABC):
                 cur_image_idx += 1
                 continue
             
-            print("<<< Not supposed to be here >>>")
+            print("In llava_arch <<< Not supposed to be here >>>")
 
             image_token_indices = [-1] + torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist() + [cur_input_ids.shape[0]]
             cur_input_ids_noim = []
@@ -297,8 +296,6 @@ class LlavaMetaForCausalLM(ABC):
 
             new_input_embeds.append(cur_new_input_embeds)
             new_labels.append(cur_new_labels)
-
-        # print("new_input_embeds[0].shape: ", new_input_embeds[0].shape)
 
         # Truncate sequences to max length as image embeddings can make the sequence longer
         tokenizer_model_max_length = getattr(self.config, 'tokenizer_model_max_length', None)
@@ -350,8 +347,6 @@ class LlavaMetaForCausalLM(ABC):
 
         if _position_ids is None:
             position_ids = None
-
-        # print("in llava_arch : attention_mask.shape: ", attention_mask.shape, "new_input_embeds.shape: ", new_input_embeds.shape, "new_labels.shape: ", new_labels.shape)
 
         return None, position_ids, attention_mask, past_key_values, new_input_embeds, new_labels, media, media_locations
 
