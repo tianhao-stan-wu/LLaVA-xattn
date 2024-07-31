@@ -29,6 +29,7 @@ from transformers.generation.utils import GenerateOutput
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 
 # xattn imports
+import os
 from einops import rearrange, repeat
 from einops_exts import rearrange_many
 from torch import einsum, nn
@@ -79,6 +80,14 @@ def count_nan_values(tensor):
     """
     nan_count = torch.isnan(tensor).sum().item()
     return nan_count
+
+
+def save_tensor_with_versioning(tensor, base_path, base_filename):
+    file_path = os.path.join(base_path, f"{base_filename}.pt")
+    if os.path.exists(file_path):
+        return
+    torch.save(tensor, file_path)
+    print(f"Tensor saved to {file_path}")
 
 
 def exists(val):
@@ -166,8 +175,15 @@ class MaskedCrossAttention(nn.Module):
         _, T_img, n = media.shape[:3]
         h = self.heads
 
+        base_path = './debug'
+        base_filename = 'x_before_rms'
+
+        save_tensor_with_versioning(x, base_path, base_filename)
         x = self.norm(x)
+        base_filename = 'x_before_rms'
+        save_tensor_with_versioning(x, base_path, base_filename)
         print("x 169:", count_nan_values(x))
+
 
         q = self.to_q(x)
         print("q 172:", count_nan_values(q))
@@ -219,7 +235,6 @@ class MaskedCrossAttention(nn.Module):
                 text_without_media_mask, "b i -> b 1 i 1"
             )
             attn = attn.masked_fill(text_without_media_mask, 0.0)
-            print("<< not supposed to be here >>")
 
         out = einsum("... i j, ... j d -> ... i d", attn, v)
         out = rearrange(out, "b h n d -> b n (h d)")

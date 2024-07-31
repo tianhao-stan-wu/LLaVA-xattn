@@ -110,6 +110,7 @@ class TrainingArguments(transformers.TrainingArguments):
     lora_bias: str = "none"
     mm_projector_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
+    wandb_project_name: str = "huggingface"
 
 
 def maybe_zero_3(param, ignore_status=False, name=None):
@@ -805,7 +806,7 @@ def train(attn_implementation=None):
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
     # add wandb project name
-    os.environ["WANDB_PROJECT"]="test_debug"
+    os.environ["WANDB_PROJECT"]= training_args.wandb_project_name
 
     print("***************")
     print("* 1 completes *")
