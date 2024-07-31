@@ -180,7 +180,7 @@ class MaskedCrossAttention(nn.Module):
 
         save_tensor_with_versioning(x, base_path, base_filename)
         x = self.norm(x)
-        base_filename = 'x_before_rms'
+        base_filename = 'x_after_rms'
         save_tensor_with_versioning(x, base_path, base_filename)
         print("x 169:", count_nan_values(x))
 
