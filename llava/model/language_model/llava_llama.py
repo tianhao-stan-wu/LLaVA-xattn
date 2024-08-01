@@ -30,11 +30,10 @@ from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 
 # xattn imports
 import os
-from einops import rearrange, repeat
-from einops_exts import rearrange_many
-from torch import einsum, nn
+import math
+from torch import nn
 
-from transformers.models.llama.modeling_llama import LlamaDecoderLayer, LlamaRMSNorm
+from transformers.models.llama.modeling_llama import LlamaDecoderLayer, LlamaAttention
 from transformers.cache_utils import Cache, DynamicCache
 from transformers.modeling_outputs import BaseModelOutputWithPast
 from transformers.utils import logging
@@ -67,10 +66,6 @@ def count_nan_values(tensor):
     return nan_count
 
 
-def exists(val):
-    return val is not None
-
-
 def FeedForward(dim, mult=4):
     inner_dim = int(dim * mult)
     return nn.Sequential(
@@ -80,164 +75,96 @@ def FeedForward(dim, mult=4):
         nn.Linear(inner_dim, dim, bias=False),
     )
 
+    
+def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
+    """
+    This is the equivalent of torch.repeat_interleave(x, dim=1, repeats=n_rep). The hidden states go from (batch,
+    num_key_value_heads, seqlen, head_dim) to (batch, num_attention_heads, seqlen, head_dim)
+    """
+    batch, num_key_value_heads, slen, head_dim = hidden_states.shape
+    if n_rep == 1:
+        return hidden_states
+    hidden_states = hidden_states[:, :, None, :, :].expand(batch, num_key_value_heads, n_rep, slen, head_dim)
+    return hidden_states.reshape(batch, num_key_value_heads * n_rep, slen, head_dim)
 
-# gated cross attention
-class MaskedCrossAttention(nn.Module):
-    def __init__(
+
+class LlamaCrossAttention(LlamaAttention):
+
+    def __init__(self, config: LlamaConfig, layer_idx: Optional[int] = None):
+        super().__init__(config, layer_idx)
+
+    def forward(
         self,
-        *,
-        text_dim,
-        vision_dim,
-        head_dim=128,
-        num_heads=32,
-        only_attend_immediate_media=True,
-    ):
-        super().__init__()
-        self.scale = head_dim**-0.5
-        self.heads = num_heads
-        inner_dim = head_dim * num_heads
+        vision_input: torch.Tensor,
+        hidden_states: torch.Tensor,
+    ) ->torch.Tensor:
 
-        self.norm = nn.LayerNorm(text_dim)
+        v_bsz, v_q_len, _ = vision_input.size()
+        bsz, q_len, _ = hidden_states.size()
 
-        self.to_q = nn.Linear(text_dim, inner_dim, bias=False)
-        self.to_kv = nn.Linear(vision_dim, inner_dim * 2, bias=False)
-        self.to_out = nn.Linear(inner_dim, text_dim, bias=False)
+        query_states = self.q_proj(hidden_states)
+        key_states = self.k_proj(vision_input)
+        value_states = self.v_proj(vision_input)
 
-        # Xavier Initialization
-        nn.init.xavier_uniform_(self.to_q.weight)
-        nn.init.xavier_uniform_(self.to_kv.weight)
-        nn.init.xavier_uniform_(self.to_out.weight)
+        query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
+        key_states = key_states.view(v_bsz, v_q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
+        value_states = value_states.view(v_bsz, v_q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
 
-        # whether for text to only attend to immediate preceding image, or all previous images
-        self.only_attend_immediate_media = only_attend_immediate_media
+        kv_seq_len = key_states.shape[-2]
 
-    def forward(self, x, media, media_locations=None, use_cached_media=False):
-        """
-        Args:
-            x (torch.Tensor): text features
-                shape (B, T_txt, D_txt)
-            media (torch.Tensor): image features
-                shape (B, T_img, n, D_img) where n is the dim of the latents
-            media_locations: boolean mask identifying the media tokens in x
-                shape (B, T_txt)
-            use_cached_media: bool
-                If true, treat all of x as if they occur after the last media
-                registered in media_locations. T_txt does not need to exactly
-                equal media_locations.shape[1] in this case
-        """
+        key_states = repeat_kv(key_states, self.num_key_value_groups)
+        value_states = repeat_kv(value_states, self.num_key_value_groups)
 
-        if not use_cached_media:
-            assert (
-                media_locations.shape[1] == x.shape[1]
-            ), f"media_location.shape is {media_locations.shape} but x.shape is {x.shape}"
+        attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(self.head_dim)
 
-        # debug
-        # print("in MaskedCrossAttention: x.shape: ", x.shape, "  media.shape: ", media.shape)
-        # print("********************")
-        # if x is not None:
-        #     print("in MaskedCrossAttention: x.shape:", x.shape)
-        #     print("count nan values for x:", count_nan_values(x))
-        # if media is not None:
-        #     print("in MaskedCrossAttention: media.shape:", media.shape)
-        #     print("count nan values for media:", count_nan_values(media))
-        # if media_locations is not None:
-        #     print("in MaskedCrossAttention: media_locations.shape:", media_locations.shape)
-        #     print("count nan values for media_locations:", count_nan_values(media_locations))
-        # print("********************")
-
-        T_txt = x.shape[1]
-        # media has shape [16, 576, 4096], add dimension n
-        media = media.unsqueeze(2)
-        # now media has shape [16, 576, 1, 4096]
-        _, T_img, n = media.shape[:3]
-        h = self.heads
-
-        x = self.norm(x)
-        # torch.set_printoptions(threshold=torch.numel(x))  # Set the print threshold to the number of elements in the tensor
-        # print(x)
-        # torch.set_printoptions(profile="default")  # Reset print options to default after printing
-        # num_zeros = (x == 0).sum().item()
-        # print("Number of 0.0000e+00 values:", num_zeros)
-        print("x 169:", count_nan_values(x))
-
-
-        q = self.to_q(x)
-        # print("q 172:", count_nan_values(q))
-        media = rearrange(media, "b t n d -> b (t n) d")
-
-        k, v = self.to_kv(media).chunk(2, dim=-1)
-        # print("k 176:", count_nan_values(k))
-        # print("v 176:", count_nan_values(v))
-        q, k, v = rearrange_many((q, k, v), "b n (h d) -> b h n d", h=h)
-
-        q = q * self.scale
-        # print("q 181:", count_nan_values(q))
-
-        sim = einsum("... i d, ... j d -> ... i j", q, k)
-        # print("sim 184:", count_nan_values(sim))
-
-        if exists(media_locations):
-            media_time = torch.arange(T_img, device=x.device) + 1
-
-            if use_cached_media:
-                # text time is set to the last cached media location
-                text_time = repeat(
-                    torch.count_nonzero(media_locations, dim=1),
-                    "b -> b i",
-                    i=T_txt,
-                )
-            else:
-                # at each boolean of True, increment the time counter (relative to media time)
-                text_time = media_locations.cumsum(dim=-1)
-
-            # text time must equal media time if only attending to most immediate image
-            # otherwise, as long as text time is greater than media time (if attending to all previous images / media)
-            mask_op = torch.eq if self.only_attend_immediate_media else torch.ge
-
-            text_to_media_mask = mask_op(
-                rearrange(text_time, "b i -> b 1 i 1"),
-                repeat(media_time, "j -> 1 1 1 (j n)", n=n),
+        if attn_weights.size() != (bsz, self.num_heads, q_len, kv_seq_len):
+            raise ValueError(
+                f"Attention weights should be of size {(bsz, self.num_heads, q_len, kv_seq_len)}, but is"
+                f" {attn_weights.size()}"
             )
-            sim = sim.masked_fill(~text_to_media_mask, -torch.finfo(sim.dtype).max)
 
-        sim = sim - sim.amax(dim=-1, keepdim=True).detach()
-        attn = sim.softmax(dim=-1)
-        # print("attn 212:", count_nan_values(attn))
+        # upcast attention to fp32
+        attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
+        attn_weights = nn.functional.dropout(attn_weights, p=self.attention_dropout, training=self.training)
+        attn_output = torch.matmul(attn_weights, value_states)
 
-        if exists(media_locations) and self.only_attend_immediate_media:
-            # any text without a preceding media needs to have attention zeroed out
-            text_without_media_mask = text_time == 0
-            text_without_media_mask = rearrange(
-                text_without_media_mask, "b i -> b 1 i 1"
+        if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):
+            raise ValueError(
+                f"`attn_output` should be of size {(bsz, self.num_heads, q_len, self.head_dim)}, but is"
+                f" {attn_output.size()}"
             )
-            attn = attn.masked_fill(text_without_media_mask, 0.0)
 
-        out = einsum("... i j, ... j d -> ... i d", attn, v)
-        out = rearrange(out, "b h n d -> b n (h d)")
-        if(check_invalid_values(self.to_out(out))):
-            print("in MaskedCrossAttention")
-        return self.to_out(out)
+        attn_output = attn_output.transpose(1, 2).contiguous()
 
+        attn_output = attn_output.reshape(bsz, q_len, self.hidden_size)
+
+        attn_output = self.o_proj(attn_output)
+
+        return attn_output
+     
 
 class GatedCrossAttentionBlock(nn.Module):
     def __init__(
         self,
         *,
         text_dim,
-        vision_dim,
-        head_dim=128,
-        num_heads=32,
+        # vision_dim,
+        # head_dim=128,
+        # num_heads=32,
         ff_mult=4,
-        only_attend_immediate_media=True,
+        # only_attend_immediate_media=True,
+        config,
+        layer_idx
     ):
         super().__init__()
-        self.attn = MaskedCrossAttention(
-            text_dim=text_dim,
-            vision_dim=vision_dim,
-            head_dim=head_dim,
-            num_heads=num_heads,
-            only_attend_immediate_media=only_attend_immediate_media,
-        )
+        # self.attn = MaskedCrossAttention(
+        #     text_dim=text_dim,
+        #     vision_dim=vision_dim,
+        #     head_dim=head_dim,
+        #     num_heads=num_heads,
+        #     only_attend_immediate_media=only_attend_immediate_media,
+        # )
+        self.attn = LlamaCrossAttention(config, layer_idx)
         self.attn_gate = nn.Parameter(torch.tensor([0.0]))
 
         self.ff = FeedForward(text_dim, mult=ff_mult)
@@ -247,23 +174,21 @@ class GatedCrossAttentionBlock(nn.Module):
         self,
         x, # language feature
         media, # visual feature
-        media_locations=None,
-        use_cached_media=False,
+        # media_locations=None,
+        # use_cached_media=False,
     ):
         x = (
             self.attn(
-                x,
-                media,
-                media_locations=media_locations,
-                use_cached_media=use_cached_media,
+                vision_input=media,
+                hidden_states=x
             )
             * self.attn_gate.tanh()
             + x
         )
         x = self.ff(x) * self.ff_gate.tanh() + x
 
-        if(check_invalid_values(x)):
-            print("in GatedCrossAttentionBlock")
+        # if(check_invalid_values(x)):
+        #     print("in GatedCrossAttentionBlock")
 
         return x
 
@@ -276,11 +201,13 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
         # add gated_xattn layer
         self.gated_xattn = GatedCrossAttentionBlock(
             text_dim=config.hidden_size,
-            vision_dim=config.hidden_size,
-            head_dim=128,
-            num_heads=32,
-            ff_mult=1,
-            only_attend_immediate_media=True
+            # vision_dim=config.hidden_size,
+            # head_dim=128,
+            # num_heads=32,
+            ff_mult=4,
+            config=config,
+            layer_idx=layer_idx
+            # only_attend_immediate_media=True
         )
 
     def forward(
@@ -288,7 +215,7 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
         # hidden_states: torch.Tensor,
         x,
         media,
-        media_locations,
+        # media_locations,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
         past_key_value: Optional[Cache] = None,
@@ -311,7 +238,7 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
             past_key_value (`Tuple(torch.FloatTensor)`, *optional*): cached past key and value projection states
         """
 
-        hidden_states = self.gated_xattn(x, media, media_locations)
+        hidden_states = self.gated_xattn(x, media)
 
         residual = hidden_states
 
@@ -335,8 +262,8 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
         hidden_states = self.mlp(hidden_states)
         hidden_states = residual + hidden_states
 
-        if(check_invalid_values(hidden_states)):
-            print("in LlamaXAttnDecoderLayer")
+        # if(check_invalid_values(hidden_states)):
+        #     print("in LlamaXAttnDecoderLayer")
 
         outputs = (hidden_states,)
 
@@ -359,13 +286,49 @@ class LlamaXAttnModel(LlamaModel):
                 [LlamaXAttnDecoderLayer(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
             )
         
-        self.post_init()
+        pretrained_model_directory = '../.cache/huggingface/hub/models--lmsys--vicuna-7b-v1.5/snapshots/3321f76e3f527bd14065daf69dad9344000a201d'  
+        print("loading vicuna weights to xattn...")
+        state_dict1 = torch.load(f"{pretrained_model_directory}/pytorch_model-00001-of-00002.bin", map_location='cpu')
+        state_dict2 = torch.load(f"{pretrained_model_directory}/pytorch_model-00002-of-00002.bin", map_location='cpu')
+
+        import json
+        wmap = json.load(pretrained_model_directory+"pytorch_model.bin.index.json")
+        
+        for layer in self.layers:
+            layer_idx = layer.layer_idx
+            location_q = "model.layers." + str(layer_idx) + ".self_attn.q_proj.weight"
+            location_k = "model.layers." + str(layer_idx) + ".self_attn.k_proj.weight"
+            location_v = "model.layers." + str(layer_idx) + ".self_attn.v_proj.weight"
+            location_o = "model.layers." + str(layer_idx) + ".self_attn.o_proj.weight"
+            bin = wmap["weight_map"][location_q][18]
+            if bin == "1":
+                q_proj_weight = state_dict1[location_q]
+                k_proj_weight = state_dict1[location_k]
+                v_proj_weight = state_dict1[location_v]
+                o_proj_weight = state_dict1[location_o]
+            elif bin == "2":
+                q_proj_weight = state_dict2[location_q]
+                k_proj_weight = state_dict2[location_k]
+                v_proj_weight = state_dict2[location_v]
+                o_proj_weight = state_dict2[location_o]
+                
+            layer.gated_xattn.attn.q_proj.weight.data = q_proj_weight
+            layer.gated_xattn.attn.k_proj.weight.data = k_proj_weight
+            layer.gated_xattn.attn.v_proj.weight.data = v_proj_weight
+            layer.gated_xattn.attn.o_proj.weight.data = o_proj_weight
+
+            if layer_idx == 31:
+                print(o_proj_weight)
+                print("***************")
+                print(layer.gated_xattn.attn.o_proj.weight.data)
+        
+        print("loaded!")
     
     def forward(
         self,
         # add vision input (media)
         media,
-        media_locations,
+        # media_locations,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -439,7 +402,7 @@ class LlamaXAttnModel(LlamaModel):
                     # xattn input,
                     hidden_states,
                     media,
-                    media_locations,
+                    # media_locations,
                     causal_mask,
                     position_ids,
                     past_key_values,
@@ -452,7 +415,7 @@ class LlamaXAttnModel(LlamaModel):
                     # xattn input,
                     x=hidden_states,
                     media=media,
-                    media_locations=media_locations,
+                    # media_locations=media_locations,
                     attention_mask=causal_mask,
                     position_ids=position_ids,
                     past_key_value=past_key_values,
@@ -576,13 +539,12 @@ class LlamaXAttnForCausalLM(LlamaForCausalLM):
         super().__init__(config)
 
         self.model = LlamaXAttnModel(config)
-        self.post_init()
 
     def forward(
         self,
         # vision inputs
         media,
-        media_locations,
+        # media_locations,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -605,7 +567,7 @@ class LlamaXAttnForCausalLM(LlamaForCausalLM):
         # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
         outputs = self.model(
             media=media,
-            media_locations=media_locations,
+            # media_locations=media_locations,
             input_ids=input_ids,
             attention_mask=attention_mask,
             position_ids=position_ids,
@@ -686,7 +648,7 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
     def forward(
         self,
         media: Optional[torch.FloatTensor] = None,
-        media_locations: Optional[torch.LongTensor] = None,
+        # media_locations: Optional[torch.LongTensor] = None,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -724,7 +686,7 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
 
         return super().forward(
             media=media,
-            media_locations=media_locations,
+            # media_locations=media_locations,
             input_ids=input_ids,
             attention_mask=attention_mask,
             position_ids=position_ids,
