@@ -74,7 +74,7 @@ def exists(val):
 def FeedForward(dim, mult=4):
     inner_dim = int(dim * mult)
     return nn.Sequential(
-        LlamaRMSNorm(dim),
+        nn.LayerNorm(dim),
         nn.Linear(dim, inner_dim, bias=False),
         nn.GELU(),
         nn.Linear(inner_dim, dim, bias=False),
@@ -97,7 +97,7 @@ class MaskedCrossAttention(nn.Module):
         self.heads = num_heads
         inner_dim = head_dim * num_heads
 
-        self.norm = LlamaRMSNorm(text_dim)
+        self.norm = nn.LayerNorm(text_dim)
 
         self.to_q = nn.Linear(text_dim, inner_dim, bias=False)
         self.to_kv = nn.Linear(vision_dim, inner_dim * 2, bias=False)
@@ -153,28 +153,28 @@ class MaskedCrossAttention(nn.Module):
         h = self.heads
 
         x = self.norm(x)
-        torch.set_printoptions(threshold=torch.numel(x))  # Set the print threshold to the number of elements in the tensor
-        print(x)
-        torch.set_printoptions(profile="default")  # Reset print options to default after printing
-        num_zeros = (x == 0).sum().item()
-        print("Number of 0.0000e+00 values:", num_zeros)
+        # torch.set_printoptions(threshold=torch.numel(x))  # Set the print threshold to the number of elements in the tensor
+        # print(x)
+        # torch.set_printoptions(profile="default")  # Reset print options to default after printing
+        # num_zeros = (x == 0).sum().item()
+        # print("Number of 0.0000e+00 values:", num_zeros)
         print("x 169:", count_nan_values(x))
 
 
         q = self.to_q(x)
-        print("q 172:", count_nan_values(q))
+        # print("q 172:", count_nan_values(q))
         media = rearrange(media, "b t n d -> b (t n) d")
 
         k, v = self.to_kv(media).chunk(2, dim=-1)
-        print("k 176:", count_nan_values(k))
-        print("v 176:", count_nan_values(v))
+        # print("k 176:", count_nan_values(k))
+        # print("v 176:", count_nan_values(v))
         q, k, v = rearrange_many((q, k, v), "b n (h d) -> b h n d", h=h)
 
         q = q * self.scale
-        print("q 181:", count_nan_values(q))
+        # print("q 181:", count_nan_values(q))
 
         sim = einsum("... i d, ... j d -> ... i j", q, k)
-        print("sim 184:", count_nan_values(sim))
+        # print("sim 184:", count_nan_values(sim))
 
         if exists(media_locations):
             media_time = torch.arange(T_img, device=x.device) + 1
@@ -202,7 +202,7 @@ class MaskedCrossAttention(nn.Module):
 
         sim = sim - sim.amax(dim=-1, keepdim=True).detach()
         attn = sim.softmax(dim=-1)
-        print("attn 212:", count_nan_values(attn))
+        # print("attn 212:", count_nan_values(attn))
 
         if exists(media_locations) and self.only_attend_immediate_media:
             # any text without a preceding media needs to have attention zeroed out
@@ -358,6 +358,8 @@ class LlamaXAttnModel(LlamaModel):
         self.layers = nn.ModuleList(
                 [LlamaXAttnDecoderLayer(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
             )
+        
+        self.post_init()
     
     def forward(
         self,
@@ -574,6 +576,7 @@ class LlamaXAttnForCausalLM(LlamaForCausalLM):
         super().__init__(config)
 
         self.model = LlamaXAttnModel(config)
+        self.post_init()
 
     def forward(
         self,
