@@ -288,12 +288,13 @@ class LlamaXAttnModel(LlamaModel):
         
         pretrained_model_directory = "../.cache/huggingface/hub/models--lmsys--vicuna-7b-v1.5/snapshots/3321f76e3f527bd14065daf69dad9344000a201d"
         print("loading vicuna weights to xattn...")
-        state_dict1 = torch.load(f"{pretrained_model_directory}/pytorch_model-00001-of-00002.bin", map_location='cpu')
-        state_dict2 = torch.load(f"{pretrained_model_directory}/pytorch_model-00002-of-00002.bin", map_location='cpu')
 
         import json
-        f = open(pretrained_model_directory+"pytorch_model.bin.index.json") 
+        f = open(pretrained_model_directory+"/pytorch_model.bin.index.json") 
         wmap = json.load(f)
+
+        state_dict1 = torch.load(f"{pretrained_model_directory}/pytorch_model-00001-of-00002.bin", map_location='cpu')
+        state_dict2 = torch.load(f"{pretrained_model_directory}/pytorch_model-00002-of-00002.bin", map_location='cpu')
         
         for layer in self.layers:
             layer_idx = layer.layer_idx
