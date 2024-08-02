@@ -92,6 +92,7 @@ class LlamaCrossAttention(LlamaAttention):
 
     def __init__(self, config: LlamaConfig, layer_idx: Optional[int] = None):
         super().__init__(config, layer_idx)
+        self.layer_idx = layer_idx
 
     def forward(
         self,
@@ -102,12 +103,20 @@ class LlamaCrossAttention(LlamaAttention):
         v_bsz, v_q_len, _ = vision_input.size()
         bsz, q_len, _ = hidden_states.size()
 
+        if(self.layer_idx == 0):
+            print(hidden_states.shape)
+            print(hidden_states[0])
+            print(vision_input.shape)
+            print(vision_input[0])
+
         query_states = self.q_proj(hidden_states)
         key_states = self.k_proj(vision_input)
         value_states = self.v_proj(vision_input)
-        print("query_states", count_nan_values(query_states))
-        print("key_states", count_nan_values(key_states))
-        print("value_states", count_nan_values(value_states))
+        
+        if(self.layer_idx == 0):
+            print("query_states", count_nan_values(query_states))
+            print("key_states", count_nan_values(key_states))
+            print("value_states", count_nan_values(value_states))
 
         query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
         key_states = key_states.view(v_bsz, v_q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
