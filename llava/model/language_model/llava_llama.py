@@ -209,6 +209,7 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
             layer_idx=layer_idx
             # only_attend_immediate_media=True
         )
+        self.layer_index = layer_idx
 
     def forward(
         self,
@@ -297,7 +298,7 @@ class LlamaXAttnModel(LlamaModel):
         state_dict2 = torch.load(f"{pretrained_model_directory}/pytorch_model-00002-of-00002.bin", map_location='cpu')
         
         for layer in self.layers:
-            layer_idx = layer.layer_idx
+            layer_idx = layer.layer_index
             location_q = "model.layers." + str(layer_idx) + ".self_attn.q_proj.weight"
             location_k = "model.layers." + str(layer_idx) + ".self_attn.k_proj.weight"
             location_v = "model.layers." + str(layer_idx) + ".self_attn.v_proj.weight"
