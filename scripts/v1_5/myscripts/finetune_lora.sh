@@ -61,9 +61,9 @@ deepspeed llava/train/train_mem.py \
     --save_strategy "steps" \
     --save_steps 50000 \
     --save_total_limit 1 \
-    --learning_rate 2e-4 \
+    --learning_rate 1e-4 \
     --weight_decay 0. \
-    --warmup_ratio 0.03 \
+    --warmup_ratio 0.1 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
