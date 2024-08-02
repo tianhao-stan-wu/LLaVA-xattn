@@ -28,9 +28,8 @@ echo " "
 python -m llava.serve.cli \
     --model-path ./checkpoints/test/llava-lora-debug-merged \
     --image-file "https://llava-vl.github.io/static/images/view.jpg" \
+    --load-4bit \
     --user-question "What are the things I should be cautious when I visit this place?"
-
-# --load-4bit \
 
 echo " "
 echo "********************************"

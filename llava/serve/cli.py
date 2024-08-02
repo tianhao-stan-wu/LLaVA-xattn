@@ -96,10 +96,6 @@ def main(args):
         keywords = [stop_str]
         streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
 
-        print(input_ids.shape, input_ids)
-        print(image_tensor.shape, image_tensor)
-        print([image_size])
-
         with torch.inference_mode():
             output_ids = model.generate(
                 input_ids,

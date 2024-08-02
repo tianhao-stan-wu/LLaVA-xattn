@@ -740,7 +740,7 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
 
 
         kwargs['media'] = media
-        kwargs['media_locations'] = media_locations
+        # kwargs['media_locations'] = media_locations
 
         return super().generate(
             position_ids=position_ids,
@@ -754,7 +754,7 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
         images = kwargs.pop("images", None)
         image_sizes = kwargs.pop("image_sizes", None)
         media = kwargs.pop("media", None)
-        media_locations = kwargs.pop("media_locations", None)
+        # media_locations = kwargs.pop("media_locations", None)
         inputs = super().prepare_inputs_for_generation(
             input_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, **kwargs
         )
@@ -764,8 +764,8 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
             inputs['image_sizes'] = image_sizes
         if media is not None:
             inputs['media'] = media
-        if media_locations is not None:
-            inputs['media_locations'] = media_locations
+        # if media_locations is not None:
+        #     inputs['media_locations'] = media_locations
         return inputs
 
 AutoConfig.register("llava_llama", LlavaConfig)
