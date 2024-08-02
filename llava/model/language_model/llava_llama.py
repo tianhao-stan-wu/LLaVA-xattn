@@ -286,47 +286,47 @@ class LlamaXAttnModel(LlamaModel):
         self.layers = nn.ModuleList(
                 [LlamaXAttnDecoderLayer(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
             )
-        
-        pretrained_model_directory = "../.cache/huggingface/hub/models--lmsys--vicuna-7b-v1.5/snapshots/3321f76e3f527bd14065daf69dad9344000a201d"
-        print("loading vicuna weights to xattn...")
+            
+        # pretrained_model_directory = "../.cache/huggingface/hub/models--lmsys--vicuna-7b-v1.5/snapshots/3321f76e3f527bd14065daf69dad9344000a201d"
+        # print("loading vicuna weights to xattn...")
 
-        import json
-        f = open(pretrained_model_directory+"/pytorch_model.bin.index.json") 
-        wmap = json.load(f)
+        # import json
+        # f = open(pretrained_model_directory+"/pytorch_model.bin.index.json") 
+        # wmap = json.load(f)
 
-        state_dict1 = torch.load(f"{pretrained_model_directory}/pytorch_model-00001-of-00002.bin", map_location='cpu')
-        state_dict2 = torch.load(f"{pretrained_model_directory}/pytorch_model-00002-of-00002.bin", map_location='cpu')
+        # state_dict1 = torch.load(f"{pretrained_model_directory}/pytorch_model-00001-of-00002.bin", map_location='cpu')
+        # state_dict2 = torch.load(f"{pretrained_model_directory}/pytorch_model-00002-of-00002.bin", map_location='cpu')
         
-        for layer in self.layers:
-            layer_idx = layer.layer_index
-            location_q = "model.layers." + str(layer_idx) + ".self_attn.q_proj.weight"
-            location_k = "model.layers." + str(layer_idx) + ".self_attn.k_proj.weight"
-            location_v = "model.layers." + str(layer_idx) + ".self_attn.v_proj.weight"
-            location_o = "model.layers." + str(layer_idx) + ".self_attn.o_proj.weight"
-            bin = wmap["weight_map"][location_q][18]
-            if bin == "1":
-                q_proj_weight = state_dict1[location_q]
-                k_proj_weight = state_dict1[location_k]
-                v_proj_weight = state_dict1[location_v]
-                o_proj_weight = state_dict1[location_o]
-            elif bin == "2":
-                q_proj_weight = state_dict2[location_q]
-                k_proj_weight = state_dict2[location_k]
-                v_proj_weight = state_dict2[location_v]
-                o_proj_weight = state_dict2[location_o]
+        # for layer in self.layers:
+        #     layer_idx = layer.layer_index
+        #     location_q = "model.layers." + str(layer_idx) + ".self_attn.q_proj.weight"
+        #     location_k = "model.layers." + str(layer_idx) + ".self_attn.k_proj.weight"
+        #     location_v = "model.layers." + str(layer_idx) + ".self_attn.v_proj.weight"
+        #     location_o = "model.layers." + str(layer_idx) + ".self_attn.o_proj.weight"
+        #     bin = wmap["weight_map"][location_q][18]
+        #     if bin == "1":
+        #         q_proj_weight = state_dict1[location_q]
+        #         k_proj_weight = state_dict1[location_k]
+        #         v_proj_weight = state_dict1[location_v]
+        #         o_proj_weight = state_dict1[location_o]
+        #     elif bin == "2":
+        #         q_proj_weight = state_dict2[location_q]
+        #         k_proj_weight = state_dict2[location_k]
+        #         v_proj_weight = state_dict2[location_v]
+        #         o_proj_weight = state_dict2[location_o]
                 
-            layer.gated_xattn.attn.q_proj.weight.data = q_proj_weight
-            layer.gated_xattn.attn.k_proj.weight.data = k_proj_weight
-            layer.gated_xattn.attn.v_proj.weight.data = v_proj_weight
-            layer.gated_xattn.attn.o_proj.weight.data = o_proj_weight
+        #     layer.gated_xattn.attn.q_proj.weight.data = q_proj_weight
+        #     layer.gated_xattn.attn.k_proj.weight.data = k_proj_weight
+        #     layer.gated_xattn.attn.v_proj.weight.data = v_proj_weight
+        #     layer.gated_xattn.attn.o_proj.weight.data = o_proj_weight
 
-            if layer_idx == 31:
-                print(o_proj_weight)
-                print("***************")
-                print(layer.gated_xattn.attn.o_proj.weight.data)
+        #     if layer_idx == 31:
+        #         print(o_proj_weight)
+        #         print("***************")
+        #         print(layer.gated_xattn.attn.o_proj.weight.data)
         
-        print("loaded!")
-        f.close() 
+        # print("loaded!")
+        # f.close() 
     
     def forward(
         self,
