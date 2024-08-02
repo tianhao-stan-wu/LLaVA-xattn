@@ -26,9 +26,9 @@ echo "***********************************"
 echo " "
 
 python scripts/merge_lora_weights.py \
-    --model-path checkpoints/llava-v1.5-7b-lora-xattn-ft150k-v1 \
+    --model-path checkpoints/test/llava-lora-debug \
     --model-base lmsys/vicuna-7b-v1.5 \
-    --save-model-path checkpoints/llava-v1.5-7b-lora-xattn-ft150k-v1-merged
+    --save-model-path checkpoints/test/llava-lora-debug-merged
 
 echo " "
 echo "********************************"
