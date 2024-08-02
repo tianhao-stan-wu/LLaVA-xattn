@@ -105,6 +105,9 @@ class LlamaCrossAttention(LlamaAttention):
         query_states = self.q_proj(hidden_states)
         key_states = self.k_proj(vision_input)
         value_states = self.v_proj(vision_input)
+        print("query_states", count_nan_values(query_states))
+        print("key_states", count_nan_values(key_states))
+        print("value_states", count_nan_values(value_states))
 
         query_states = query_states.view(bsz, q_len, self.num_heads, self.head_dim).transpose(1, 2)
         key_states = key_states.view(v_bsz, v_q_len, self.num_key_value_heads, self.head_dim).transpose(1, 2)
