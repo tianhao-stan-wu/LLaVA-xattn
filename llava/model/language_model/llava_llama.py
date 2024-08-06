@@ -31,7 +31,9 @@ from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 # xattn imports
 import os
 import math
-from torch import nn
+from einops import rearrange, repeat
+from einops_exts import rearrange_many
+from torch import einsum, nn
 
 from transformers.models.llama.modeling_llama import LlamaDecoderLayer, LlamaAttention
 from transformers.cache_utils import Cache, DynamicCache
@@ -66,6 +68,10 @@ def count_nan_values(tensor):
     return nan_count
 
 
+def exists(val):
+    return val is not None
+
+
 def FeedForward(dim, mult=4):
     inner_dim = int(dim * mult)
     return nn.Sequential(
@@ -74,6 +80,130 @@ def FeedForward(dim, mult=4):
         nn.GELU(),
         nn.Linear(inner_dim, dim, bias=False),
     )
+
+
+# gated cross attention
+class MaskedCrossAttention(nn.Module):
+    def __init__(
+        self,
+        *,
+        text_dim,
+        vision_dim,
+        head_dim=128,
+        num_heads=32,
+        only_attend_immediate_media=False,
+    ):
+        super().__init__()
+        self.scale = head_dim**-0.5
+        self.heads = num_heads
+        inner_dim = head_dim * num_heads
+
+        self.norm = nn.LayerNorm(text_dim)
+
+        self.to_q = nn.Linear(text_dim, inner_dim, bias=False)
+        self.to_kv = nn.Linear(vision_dim, inner_dim * 2, bias=False)
+        self.to_out = nn.Linear(inner_dim, text_dim, bias=False)
+
+        # Xavier Initialization
+        nn.init.xavier_uniform_(self.to_q.weight)
+        nn.init.xavier_uniform_(self.to_kv.weight)
+        nn.init.xavier_uniform_(self.to_out.weight)
+
+        # whether for text to only attend to immediate preceding image, or all previous images
+        self.only_attend_immediate_media = only_attend_immediate_media
+
+    def forward(self, x, media, media_locations=None, use_cached_media=False):
+        """
+        Args:
+            x (torch.Tensor): text features
+                shape (B, T_txt, D_txt)
+            media (torch.Tensor): image features
+                shape (B, T_img, n, D_img) where n is the dim of the latents
+            media_locations: boolean mask identifying the media tokens in x
+                shape (B, T_txt)
+            use_cached_media: bool
+                If true, treat all of x as if they occur after the last media
+                registered in media_locations. T_txt does not need to exactly
+                equal media_locations.shape[1] in this case
+        """
+
+        if not use_cached_media:
+            assert (
+                media_locations.shape[1] == x.shape[1]
+            ), f"media_location.shape is {media_locations.shape} but x.shape is {x.shape}"
+
+        T_txt = x.shape[1]
+        # media has shape [16, 576, 4096], add dimension n
+        media = media.unsqueeze(2)
+        # now media has shape [16, 576, 1, 4096]
+        _, T_img, n = media.shape[:3]
+        h = self.heads
+
+        x = self.norm(x)
+        # torch.set_printoptions(threshold=torch.numel(x))  # Set the print threshold to the number of elements in the tensor
+        # print(x)
+        # torch.set_printoptions(profile="default")  # Reset print options to default after printing
+        # num_zeros = (x == 0).sum().item()
+        # print("Number of 0.0000e+00 values:", num_zeros)
+        # print("x 169:", count_nan_values(x))
+
+
+        q = self.to_q(x)
+        # print("q 172:", count_nan_values(q))
+        media = rearrange(media, "b t n d -> b (t n) d")
+
+        k, v = self.to_kv(media).chunk(2, dim=-1)
+        # print("k 176:", count_nan_values(k))
+        # print("v 176:", count_nan_values(v))
+        q, k, v = rearrange_many((q, k, v), "b n (h d) -> b h n d", h=h)
+
+        q = q * self.scale
+        # print("q 181:", count_nan_values(q))
+
+        sim = einsum("... i d, ... j d -> ... i j", q, k)
+        # print("sim 184:", count_nan_values(sim))
+
+        if exists(media_locations):
+            media_time = torch.arange(T_img, device=x.device) + 1
+
+            if use_cached_media:
+                # text time is set to the last cached media location
+                text_time = repeat(
+                    torch.count_nonzero(media_locations, dim=1),
+                    "b -> b i",
+                    i=T_txt,
+                )
+            else:
+                # at each boolean of True, increment the time counter (relative to media time)
+                text_time = media_locations.cumsum(dim=-1)
+
+            # text time must equal media time if only attending to most immediate image
+            # otherwise, as long as text time is greater than media time (if attending to all previous images / media)
+            mask_op = torch.eq if self.only_attend_immediate_media else torch.ge
+
+            text_to_media_mask = mask_op(
+                rearrange(text_time, "b i -> b 1 i 1"),
+                repeat(media_time, "j -> 1 1 1 (j n)", n=n),
+            )
+            sim = sim.masked_fill(~text_to_media_mask, -torch.finfo(sim.dtype).max)
+
+        sim = sim - sim.amax(dim=-1, keepdim=True).detach()
+        attn = sim.softmax(dim=-1)
+        # print("attn 212:", count_nan_values(attn))
+
+        if exists(media_locations) and self.only_attend_immediate_media:
+            # any text without a preceding media needs to have attention zeroed out
+            text_without_media_mask = text_time == 0
+            text_without_media_mask = rearrange(
+                text_without_media_mask, "b i -> b 1 i 1"
+            )
+            attn = attn.masked_fill(text_without_media_mask, 0.0)
+            print("only_attend_immediate_media should be false")
+
+        out = einsum("... i j, ... j d -> ... i d", attn, v)
+        out = rearrange(out, "b h n d -> b n (h d)")
+
+        return self.to_out(out)
 
     
 def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
@@ -160,23 +290,23 @@ class GatedCrossAttentionBlock(nn.Module):
         self,
         *,
         text_dim,
-        # vision_dim,
-        # head_dim=128,
-        # num_heads=32,
+        vision_dim,
+        head_dim=128,
+        num_heads=32,
         ff_mult=4,
-        # only_attend_immediate_media=True,
-        config,
-        layer_idx
+        only_attend_immediate_media=False,
+        # config,
+        # layer_idx
     ):
         super().__init__()
-        # self.attn = MaskedCrossAttention(
-        #     text_dim=text_dim,
-        #     vision_dim=vision_dim,
-        #     head_dim=head_dim,
-        #     num_heads=num_heads,
-        #     only_attend_immediate_media=only_attend_immediate_media,
-        # )
-        self.attn = LlamaCrossAttention(config, layer_idx)
+        self.attn = MaskedCrossAttention(
+            text_dim=text_dim,
+            vision_dim=vision_dim,
+            head_dim=head_dim,
+            num_heads=num_heads,
+            only_attend_immediate_media=only_attend_immediate_media,
+        )
+        # self.attn = LlamaCrossAttention(config, layer_idx)
         self.attn_gate = nn.Parameter(torch.tensor([0.0]))
 
         self.ff = FeedForward(text_dim, mult=ff_mult)
@@ -186,13 +316,23 @@ class GatedCrossAttentionBlock(nn.Module):
         self,
         x, # language feature
         media, # visual feature
-        # media_locations=None,
-        # use_cached_media=False,
+        media_locations=None,
+        use_cached_media=False,
     ):
+        # x = (
+        #     self.attn(
+        #         vision_input=media,
+        #         hidden_states=x
+        #     )
+        #     * self.attn_gate.tanh()
+        #     + x
+        # )
         x = (
             self.attn(
-                vision_input=media,
-                hidden_states=x
+                x,
+                media,
+                media_locations=media_locations,
+                use_cached_media=use_cached_media,
             )
             * self.attn_gate.tanh()
             + x
@@ -209,25 +349,14 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
 
     def __init__(self, config: LlamaConfig, layer_idx: int):
         super().__init__(config, layer_idx)
-
-        # add gated_xattn layer
-        self.gated_xattn = GatedCrossAttentionBlock(
-            text_dim=config.hidden_size,
-            # vision_dim=config.hidden_size,
-            # head_dim=128,
-            # num_heads=32,
-            ff_mult=4,
-            config=config,
-            layer_idx=layer_idx
-            # only_attend_immediate_media=True
-        )
+        
         self.layer_index = layer_idx
 
     def forward(
         self,
-        # hidden_states: torch.Tensor,
-        x,
-        media,
+        hidden_states: torch.Tensor,
+        # x,
+        # media,
         # media_locations,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -250,8 +379,6 @@ class LlamaXAttnDecoderLayer(LlamaDecoderLayer):
                 (see `past_key_values`).
             past_key_value (`Tuple(torch.FloatTensor)`, *optional*): cached past key and value projection states
         """
-
-        hidden_states = self.gated_xattn(x, media)
 
         residual = hidden_states
 
@@ -298,6 +425,17 @@ class LlamaXAttnModel(LlamaModel):
         self.layers = nn.ModuleList(
                 [LlamaXAttnDecoderLayer(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
             )
+        
+        self.gated_xattn = GatedCrossAttentionBlock(
+            text_dim=config.hidden_size,
+            vision_dim=config.hidden_size,
+            head_dim=128,
+            num_heads=32,
+            ff_mult=4,
+            # config=config,
+            # layer_idx=layer_idx,
+            only_attend_immediate_media=False
+        )
             
         # pretrained_model_directory = "../.cache/huggingface/hub/models--lmsys--vicuna-7b-v1.5/snapshots/3321f76e3f527bd14065daf69dad9344000a201d"
         # print("loading vicuna weights to xattn...")
@@ -344,7 +482,7 @@ class LlamaXAttnModel(LlamaModel):
         self,
         # add vision input (media)
         media,
-        # media_locations,
+        media_locations,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -399,9 +537,11 @@ class LlamaXAttnModel(LlamaModel):
         causal_mask = self._update_causal_mask(
             attention_mask, inputs_embeds, cache_position, past_key_values, output_attentions
         )
-
+        
         # embed positions
         hidden_states = inputs_embeds
+
+        hidden_states = self.gated_xattn(hidden_states, media, media_locations)
 
         # decoder layers
         all_hidden_states = () if output_hidden_states else None
@@ -417,7 +557,7 @@ class LlamaXAttnModel(LlamaModel):
                     decoder_layer.__call__,
                     # xattn input,
                     hidden_states,
-                    media,
+                    # media,
                     # media_locations,
                     causal_mask,
                     position_ids,
@@ -429,8 +569,9 @@ class LlamaXAttnModel(LlamaModel):
             else:
                 layer_outputs = decoder_layer(
                     # xattn input,
-                    x=hidden_states,
-                    media=media,
+                    # x=hidden_states,
+                    hidden_states=hidden_states,
+                    # media=media,
                     # media_locations=media_locations,
                     attention_mask=causal_mask,
                     position_ids=position_ids,
@@ -560,7 +701,7 @@ class LlamaXAttnForCausalLM(LlamaForCausalLM):
         self,
         # vision inputs
         media,
-        # media_locations,
+        media_locations,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -583,7 +724,7 @@ class LlamaXAttnForCausalLM(LlamaForCausalLM):
         # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
         outputs = self.model(
             media=media,
-            # media_locations=media_locations,
+            media_locations=media_locations,
             input_ids=input_ids,
             attention_mask=attention_mask,
             position_ids=position_ids,
@@ -664,7 +805,7 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
     def forward(
         self,
         media: Optional[torch.FloatTensor] = None,
-        # media_locations: Optional[torch.LongTensor] = None,
+        media_locations: Optional[torch.LongTensor] = None,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -702,7 +843,7 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
 
         return super().forward(
             media=media,
-            # media_locations=media_locations,
+            media_locations=media_locations,
             input_ids=input_ids,
             attention_mask=attention_mask,
             position_ids=position_ids,
@@ -752,7 +893,7 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
 
 
         kwargs['media'] = media
-        # kwargs['media_locations'] = media_locations
+        kwargs['media_locations'] = media_locations
 
         return super().generate(
             position_ids=position_ids,
@@ -766,7 +907,7 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
         images = kwargs.pop("images", None)
         image_sizes = kwargs.pop("image_sizes", None)
         media = kwargs.pop("media", None)
-        # media_locations = kwargs.pop("media_locations", None)
+        media_locations = kwargs.pop("media_locations", None)
         inputs = super().prepare_inputs_for_generation(
             input_ids, past_key_values=past_key_values, inputs_embeds=inputs_embeds, **kwargs
         )
@@ -776,8 +917,8 @@ class LlavaLlamaForCausalLM(LlamaXAttnForCausalLM, LlavaMetaForCausalLM):
             inputs['image_sizes'] = image_sizes
         if media is not None:
             inputs['media'] = media
-        # if media_locations is not None:
-        #     inputs['media_locations'] = media_locations
+        if media_locations is not None:
+            inputs['media_locations'] = media_locations
         return inputs
 
 AutoConfig.register("llava_llama", LlavaConfig)

@@ -52,7 +52,7 @@ deepspeed llava/train/train_mem.py \
     --mm_use_im_patch_token False \
     --image_aspect_ratio pad \
     --bf16 True \
-    --output_dir ./checkpoints/test/debug \
+    --output_dir ./checkpoints/test/llava-lora-debug \
     --num_train_epochs 1 \
     --per_device_train_batch_size 8 \
     --per_device_eval_batch_size 4 \
@@ -63,7 +63,7 @@ deepspeed llava/train/train_mem.py \
     --save_total_limit 1 \
     --learning_rate 1e-4 \
     --weight_decay 0. \
-    --warmup_ratio 0.1 \
+    --warmup_ratio 0.05 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
