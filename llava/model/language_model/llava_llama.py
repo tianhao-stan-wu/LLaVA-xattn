@@ -202,6 +202,7 @@ class MaskedCrossAttention(nn.Module):
 
         out = einsum("... i j, ... j d -> ... i d", attn, v)
         out = rearrange(out, "b h n d -> b n (h d)")
+        print("205 out:", count_nan_values(out))
 
         return self.to_out(out)
 
@@ -590,6 +591,8 @@ class LlamaXAttnModel(LlamaModel):
                 all_self_attns += (layer_outputs[1],)
 
         hidden_states = self.norm(hidden_states)
+
+        print("595 hidden_states:", count_nan_values(hidden_states))
 
         # add hidden states from the last decoder layer
         if output_hidden_states:
