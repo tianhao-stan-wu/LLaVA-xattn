@@ -29,7 +29,7 @@ python -m llava.serve.cli \
     --model-path ./checkpoints/llava-v1.5-7b-lora-merged \
     --image-file "./test_dataset/000000520873.jpg" \
     --load-4bit \
-    --user-question "Is there a girl in this picture?"
+    --user-question "Describe the scene in a few sentences. What's the color of the girl's hair?"
 
 echo " "
 echo "********************************"
