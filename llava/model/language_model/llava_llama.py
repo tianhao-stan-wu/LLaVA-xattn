@@ -145,16 +145,16 @@ class MaskedCrossAttention(nn.Module):
         # torch.set_printoptions(profile="default")  # Reset print options to default after printing
         # num_zeros = (x == 0).sum().item()
         # print("Number of 0.0000e+00 values:", num_zeros)
-        # print("x 169:", count_nan_values(x))
+        print("x 142:", count_nan_values(x))
 
 
         q = self.to_q(x)
-        # print("q 172:", count_nan_values(q))
+        print("q 172:", count_nan_values(q))
         media = rearrange(media, "b t n d -> b (t n) d")
 
         k, v = self.to_kv(media).chunk(2, dim=-1)
-        # print("k 176:", count_nan_values(k))
-        # print("v 176:", count_nan_values(v))
+        print("k 176:", count_nan_values(k))
+        print("v 176:", count_nan_values(v))
         q, k, v = rearrange_many((q, k, v), "b n (h d) -> b h n d", h=h)
 
         q = q * self.scale
