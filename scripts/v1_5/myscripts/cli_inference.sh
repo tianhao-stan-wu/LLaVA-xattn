@@ -27,9 +27,9 @@ echo " "
 
 python -m llava.serve.cli \
     --model-path ./checkpoints/test/llava-lora-debug-merged \
-    --image-file "https://llava-vl.github.io/static/images/view.jpg" \
+    --image-file "./test_dataset/000000520873.jpg" \
     --load-4bit \
-    --user-question "What are the things I should be cautious when I visit this place?"
+    --user-question "Is there a girl in this picture?"
 
 echo " "
 echo "********************************"
