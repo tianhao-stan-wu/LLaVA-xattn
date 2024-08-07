@@ -206,7 +206,7 @@ class LlavaMetaForCausalLM(ABC):
             raise NotImplementedError
         
         # compress image_features from 4096 to 64
-        image_features = self.mmresampler(image_features)
+        image_features = self.mm_resampler(image_features)
         text_features = self.get_model().embed_tokens(input_ids)
         # fuse image with text using xattn
         new_input_embeds = self.mm_xattn(x=text_features, media=image_features)
