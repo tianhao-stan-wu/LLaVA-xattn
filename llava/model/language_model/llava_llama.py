@@ -78,9 +78,9 @@ class MaskedCrossAttention(nn.Module):
         """
         Args:
             x (torch.Tensor): text features
-                shape (B, T_txt, D_txt)
+                shape (B, T_txt, D_txt 4098)
             media (torch.Tensor): image features
-                shape (B, T_img, D_img) where n is the dim of the latents    
+                shape (B, T_img, D_img 64) where n is the dim of the latents    
         """
 
         h = self.heads
@@ -93,6 +93,9 @@ class MaskedCrossAttention(nn.Module):
         q, k, v = rearrange_many((q, k, v), "b n (h d) -> b h n d", h=h)
 
         q = q * self.scale
+
+        print("q.shape:", q.shape)
+        print("k.shape:", k.shape)
 
         sim = einsum("... i d, ... j d -> ... i j", q, k)
 
