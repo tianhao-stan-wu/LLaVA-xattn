@@ -83,8 +83,8 @@ class MaskedCrossAttention(nn.Module):
                 shape (B, T_img, D_img 64) where n is the dim of the latents    
         """
 
-        print("q0.shape:", q.shape)
-        print("k0.shape:", k.shape)
+        print("x.shape:", x.shape)
+        print("media.shape:", media.shape)
 
         h = self.heads
 
@@ -97,8 +97,8 @@ class MaskedCrossAttention(nn.Module):
 
         q = q * self.scale
 
-        print("q1.shape:", q.shape)
-        print("k1.shape:", k.shape)
+        print("q.shape:", q.shape)
+        print("k.shape:", k.shape)
 
         sim = einsum("... i d, ... j d -> ... i j", q, k)
 
