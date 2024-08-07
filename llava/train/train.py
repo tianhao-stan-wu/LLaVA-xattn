@@ -181,16 +181,16 @@ def find_all_linear_names(model):
     if 'lm_head' in lora_module_names: # needed for 16-bit
         lora_module_names.remove('lm_head')
     # remove lora for newly added layers
-    if 'to_q' in lora_module_names: 
-        lora_module_names.remove('to_q')
-    if 'to_kv' in lora_module_names: 
-        lora_module_names.remove('to_kv')
-    if 'to_out' in lora_module_names: 
-        lora_module_names.remove('to_out')
-    if '1' in lora_module_names: 
-        lora_module_names.remove('1') 
-    if '3' in lora_module_names: 
-        lora_module_names.remove('3')   
+    # if 'to_q' in lora_module_names: 
+    #     lora_module_names.remove('to_q')
+    # if 'to_kv' in lora_module_names: 
+    #     lora_module_names.remove('to_kv')
+    # if 'to_out' in lora_module_names: 
+    #     lora_module_names.remove('to_out')
+    # if '1' in lora_module_names: 
+    #     lora_module_names.remove('1') 
+    # if '3' in lora_module_names: 
+    #     lora_module_names.remove('3')   
 
     return list(lora_module_names)
 
@@ -1004,8 +1004,8 @@ def train(attn_implementation=None):
     print("* 5 completes *")
     print("***************")
 
-    token_img = ['image']
-    model.image_id = tokenizer.convert_tokens_to_ids(token_img)[0]
+    # token_img = ['image']
+    # model.image_id = tokenizer.convert_tokens_to_ids(token_img)[0]
     # image_id: 3027, type: int
 
     trainer = LLaVATrainer(model=model,
