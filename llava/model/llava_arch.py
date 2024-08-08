@@ -205,6 +205,19 @@ class LlavaMetaForCausalLM(ABC):
         if getattr(self.config, 'tune_mm_mlp_adapter', False) and getattr(self.config, 'mm_use_im_start_end', False):
             raise NotImplementedError
         
+        print("input_ids.shape", input_ids.shape)
+        print(input_ids)
+        print("position_ids is None:", position_ids==None)
+        print('attention_mask.shape', attention_mask.shape)
+        print(attention_mask)
+        print("past_key_values is None:", past_key_values==None)
+        print('labels.shape', labels.shape)
+        print(labels)
+
+
+        # debugging
+        raise ValueError("quit program")
+
         # replace IMAGE_TOKEN_INDEX with tokenized id
         image_id = 3027
         input_ids = torch.where(input_ids == IMAGE_TOKEN_INDEX, torch.tensor(image_id, dtype=input_ids.dtype), input_ids)
