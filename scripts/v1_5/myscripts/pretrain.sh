@@ -38,7 +38,7 @@ deepspeed llava/train/train_mem.py \
     --deepspeed ./scripts/zero2.json \
     --model_name_or_path lmsys/vicuna-7b-v1.5 \
     --version plain \
-    --data_path ./test_dataset/llava_instruct_1.json \
+    --data_path ./test_dataset/llava_instruct_10.json \
     --image_folder ./test_dataset \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --pretrain_mm_mlp_adapter ./checkpoints/llava-v1.5-7b-pretrain/mm_projector.bin \
