@@ -1004,8 +1004,9 @@ def train(attn_implementation=None):
     print("* 5 completes *")
     print("***************")
 
-    # token_img = ['image']
-    # model.image_id = tokenizer.convert_tokens_to_ids(token_img)[0]
+    token_img = ['image']
+    image_id = tokenizer.convert_tokens_to_ids(token_img)[0]
+    print("image_id:", image_id)
     # image_id: 3027, type: int
 
     trainer = LLaVATrainer(model=model,

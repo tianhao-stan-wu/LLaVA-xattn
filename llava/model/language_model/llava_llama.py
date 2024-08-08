@@ -152,11 +152,9 @@ class GatedCrossAttentionBlock(nn.Module):
 
 def build_mm_resampler():
 
-    modules = [nn.Linear(4096, 1024)]
+    modules = [nn.Linear(4096, 512)]
     modules.append(nn.GELU())
-    modules.append(nn.Linear(1024, 256))
-    modules.append(nn.GELU())
-    modules.append(nn.Linear(256, 64))
+    modules.append(nn.Linear(512, 64))
     return nn.Sequential(*modules)
 
 

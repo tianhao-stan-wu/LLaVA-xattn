@@ -205,6 +205,11 @@ class LlavaMetaForCausalLM(ABC):
         if getattr(self.config, 'tune_mm_mlp_adapter', False) and getattr(self.config, 'mm_use_im_start_end', False):
             raise NotImplementedError
         
+        # replace IMAGE_TOKEN_INDEX with tokenized id
+        image_id = 3027
+        print("before convert:", input_ids)
+        input_ids = torch.where(input_ids == IMAGE_TOKEN_INDEX, torch.tensor(image_id, dtype=input_ids.dtype), input_ids)
+        print("after convert", input_ids)
         # compress image_features from 4096 to 64
         image_features = self.mm_resampler(image_features)
         text_features = self.get_model().embed_tokens(input_ids)
