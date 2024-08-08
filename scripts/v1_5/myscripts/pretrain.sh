@@ -39,7 +39,7 @@ deepspeed llava/train/train_mem.py \
     --model_name_or_path lmsys/vicuna-7b-v1.5 \
     --version plain \
     --data_path ../dataset/LLaVA-pretrain/blip_laion_cc_sbu_558k.json \
-    --image_folder ../dataset/LLaVA-pretrain/images
+    --image_folder ../dataset/LLaVA-pretrain/images \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --pretrain_mm_mlp_adapter ./checkpoints/llava-v1.5-7b-pretrain/mm_projector.bin \
     --mm_projector_type mlp2x_gelu \
@@ -49,7 +49,7 @@ deepspeed llava/train/train_mem.py \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --bf16 True \
-    --output_dir ./checkpoints/llava-v1.5-7b-pretrain-xattn \
+    --output_dir ./checkpoints/test/llava-pretrain-debug \
     --num_train_epochs 1 \
     --per_device_train_batch_size 8 \
     --per_device_eval_batch_size 4 \
