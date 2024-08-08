@@ -65,13 +65,6 @@ def main(args):
         image_tensor = image_tensor.to(model.device, dtype=torch.float16)
 
     while True:
-        # try:
-        #     inp = input(f"{roles[0]}: ")
-        # except EOFError:
-        #     inp = ""
-        # if not inp:
-        #     print("exit...")
-        #     break
 
         # single inference for testing
         inp = args.user_question
