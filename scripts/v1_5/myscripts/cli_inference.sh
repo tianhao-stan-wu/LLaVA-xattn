@@ -27,13 +27,8 @@ echo " "
 
 python -m llava.serve.cli \
     --model-path ./checkpoints/llava-v1.5-7b-pretrain-xattn \
-    --image-file "https://llava-vl.github.io/static/images/view.jpg" \
-    --load-4bit \
-    --user-question "What are the things I should be cautious about when I visit this place?"
-
-
-# "./test_dataset/000000520873.jpg" \
-# "Describe the scene in a few sentences. What's the color of the girl's hair?"
+    --load-4bit 
+    
 
 echo " "
 echo "********************************"

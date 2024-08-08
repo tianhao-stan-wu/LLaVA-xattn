@@ -28,46 +28,58 @@ def main(args):
     # Model
     disable_torch_init()
 
+    image_files = []
+    image_files.append("https://llava-vl.github.io/static/images/view.jpg")
+    image_files.append("./test_dataset/000000520873.jpg")
+    image_files.append("./test_dataset/000000052846.jpg")
+
+    questions = []
+    questions.append("What are the things I should be cautious about when I visit this place?")
+    questions.append("Describe the scene in a few sentences. What's the color of the girl's hair?")
+    questions.append("Is there a curtain in the photo? What is its color?")
+
+
     model_name = get_model_name_from_path(args.model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(args.model_path, args.model_base, model_name, args.load_8bit, args.load_4bit, device=args.device, use_flash_attn=True)
 
-    if "llama-2" in model_name.lower():
-        conv_mode = "llava_llama_2"
-    elif "mistral" in model_name.lower():
-        conv_mode = "mistral_instruct"
-    elif "v1.6-34b" in model_name.lower():
-        conv_mode = "chatml_direct"
-    elif "v1" in model_name.lower():
-        conv_mode = "llava_v1"
-    elif "mpt" in model_name.lower():
-        conv_mode = "mpt"
-    else:
-        conv_mode = "llava_v0"
 
-    if args.conv_mode is not None and conv_mode != args.conv_mode:
-        print('[WARNING] the auto inferred conversation mode is {}, while `--conv-mode` is {}, using {}'.format(conv_mode, args.conv_mode, args.conv_mode))
-    else:
-        args.conv_mode = conv_mode
+    for i in range(len(image_files)):
 
-    conv = conv_templates[args.conv_mode].copy()
-    if "mpt" in model_name.lower():
-        roles = ('user', 'assistant')
-    else:
-        roles = conv.roles
+        if "llama-2" in model_name.lower():
+            conv_mode = "llava_llama_2"
+        elif "mistral" in model_name.lower():
+            conv_mode = "mistral_instruct"
+        elif "v1.6-34b" in model_name.lower():
+            conv_mode = "chatml_direct"
+        elif "v1" in model_name.lower():
+            conv_mode = "llava_v1"
+        elif "mpt" in model_name.lower():
+            conv_mode = "mpt"
+        else:
+            conv_mode = "llava_v0"
 
-    image = load_image(args.image_file)
-    image_size = image.size
-    # Similar operation in model_worker.py
-    image_tensor = process_images([image], image_processor, model.config)
-    if type(image_tensor) is list:
-        image_tensor = [image.to(model.device, dtype=torch.float16) for image in image_tensor]
-    else:
-        image_tensor = image_tensor.to(model.device, dtype=torch.float16)
+        if args.conv_mode is not None and conv_mode != args.conv_mode:
+            print('[WARNING] the auto inferred conversation mode is {}, while `--conv-mode` is {}, using {}'.format(conv_mode, args.conv_mode, args.conv_mode))
+        else:
+            args.conv_mode = conv_mode
 
-    while True:
+        conv = conv_templates[args.conv_mode].copy()
+        if "mpt" in model_name.lower():
+            roles = ('user', 'assistant')
+        else:
+            roles = conv.roles
+
+        image = load_image(image_files[i])
+        image_size = image.size
+        # Similar operation in model_worker.py
+        image_tensor = process_images([image], image_processor, model.config)
+        if type(image_tensor) is list:
+            image_tensor = [image.to(model.device, dtype=torch.float16) for image in image_tensor]
+        else:
+            image_tensor = image_tensor.to(model.device, dtype=torch.float16)
 
         # single inference for testing
-        inp = args.user_question
+        inp = questions[i]
         print(f"{roles[0]}: {inp}")
 
         print(f"{roles[1]}: ", end="")
@@ -103,10 +115,8 @@ def main(args):
         outputs = tokenizer.decode(output_ids[0]).strip()
         conv.messages[-1][-1] = outputs
 
-        if args.debug:
-            print("\n", {"prompt": prompt, "outputs": outputs}, "\n")
         
-        break
+        
 
 
 if __name__ == "__main__":
