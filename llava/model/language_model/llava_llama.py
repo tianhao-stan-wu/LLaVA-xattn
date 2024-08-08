@@ -83,9 +83,6 @@ class MaskedCrossAttention(nn.Module):
                 shape (B, T_img, D_img 64) where n is the dim of the latents    
         """
 
-        print("x.shape:", x.shape)
-        print("media.shape:", media.shape)
-
         h = self.heads
 
         x = self.norm(x)
@@ -96,9 +93,6 @@ class MaskedCrossAttention(nn.Module):
         q, k, v = rearrange_many((q, k, v), "b n (h d) -> b h n d", h=h)
 
         q = q * self.scale
-
-        print("q.shape:", q.shape)
-        print("k.shape:", k.shape)
 
         sim = einsum("... i d, ... j d -> ... i j", q, k)
 
