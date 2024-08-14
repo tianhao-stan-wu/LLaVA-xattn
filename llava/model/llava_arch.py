@@ -243,6 +243,9 @@ class LlavaMetaForCausalLM(ABC):
         # remove image token from input_ids and labels
         input_ids_no_token = []
         labels_no_token = []
+        print("input_ids[0]:", input_ids[0], "\nlabels[0]:", labels[0])
+
+        raise ValueError("quit program")
       
         for cur_input_ids in input_ids:
 
