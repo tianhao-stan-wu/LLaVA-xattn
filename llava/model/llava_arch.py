@@ -284,7 +284,9 @@ class LlavaMetaForCausalLM(ABC):
             # cur_new_labels = torch.cat(cur_new_labels)
 
             new_input_embeds.append(cur_input_embeds)
-            new_labels.append(torch.cat(cur_labels_noim))
+            cur_labels_noim = torch.cat(cur_labels_noim)
+            print(cur_labels_noim)
+            new_labels.append(cur_labels_noim)
 
         # Truncate sequences to max length as image embeddings can make the sequence longer
         tokenizer_model_max_length = getattr(self.config, 'tokenizer_model_max_length', None)
