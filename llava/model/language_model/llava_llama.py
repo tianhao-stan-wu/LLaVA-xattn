@@ -175,8 +175,8 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
 
         # add a two-layer MLP that compresses img features to reduce computational complexity
         # in cross-attention layer
-        self.mm_resampler = build_mm_resampler()
-        self.mm_xattn = GatedCrossAttentionBlock(dim=4096, dim_visual=64)
+        # self.mm_resampler = build_mm_resampler()
+        self.mm_xattn = GatedCrossAttentionBlock(dim=4096, dim_visual=4096)
 
         # Initialize weights and apply final processing
         self.post_init()
