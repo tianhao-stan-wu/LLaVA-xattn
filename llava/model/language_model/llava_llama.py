@@ -67,7 +67,8 @@ class MaskedCrossAttention(nn.Module):
         self.heads = heads
         inner_dim = dim_head * heads
 
-        self.norm = nn.LayerNorm(dim)
+        self.text_norm = nn.LayerNorm(dim)
+        self.image_norm = nn.LayerNorm(dim_visual)
 
         self.to_q = nn.Linear(dim, inner_dim, bias=False)
         self.to_kv = nn.Linear(dim_visual, inner_dim * 2, bias=False)
@@ -85,7 +86,8 @@ class MaskedCrossAttention(nn.Module):
 
         h = self.heads
 
-        x = self.norm(x)
+        x = self.text_norm(x)
+        media = self.image_norm(media)
 
         q = self.to_q(x)
 
