@@ -26,7 +26,7 @@ echo "***********************************"
 echo " "
 
 python -m llava.serve.cli \
-    --model-path ./checkpoints/llava-v1.5-7b-pretrain-xattn \
+    --model-path ./checkpoints/llava-v1.5-7b-pretrain-xattn-v2 \
     --load-4bit 
     
 
