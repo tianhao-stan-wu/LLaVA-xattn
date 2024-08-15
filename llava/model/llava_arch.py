@@ -285,7 +285,6 @@ class LlavaMetaForCausalLM(ABC):
 
             new_input_embeds.append(cur_input_embeds)
             cur_labels_noim = torch.cat(cur_labels_noim)
-            print(cur_labels_noim)
             new_labels.append(cur_labels_noim)
 
         # Truncate sequences to max length as image embeddings can make the sequence longer
@@ -345,7 +344,7 @@ class LlavaMetaForCausalLM(ABC):
         # fuse image with text using xattn
         new_input_embeds = self.mm_xattn(x=new_input_embeds, media=image_features)
 
-        return None, position_ids, attention_mask, past_key_values, new_input_embeds, labels
+        return None, position_ids, attention_mask, past_key_values, new_input_embeds, new_labels
 
     def initialize_vision_tokenizer(self, model_args, tokenizer):
         if model_args.mm_use_im_patch_token:
