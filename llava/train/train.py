@@ -171,9 +171,7 @@ def find_all_linear_names(model):
     cls = torch.nn.Linear
     lora_module_names = set()
     multimodal_keywords = ['mm_projector', 'vision_tower', 'vision_resampler']
-    print("named_modules in model")
     for name, module in model.named_modules():
-        print(name, module)
         if any(mm_keyword in name for mm_keyword in multimodal_keywords):
             continue
         if isinstance(module, cls):
@@ -182,20 +180,22 @@ def find_all_linear_names(model):
 
     if 'lm_head' in lora_module_names: # needed for 16-bit
         lora_module_names.remove('lm_head')
+
     # remove lora for newly added layers
-    # if 'to_q' in lora_module_names: 
-    #     lora_module_names.remove('to_q')
-    # if 'to_kv' in lora_module_names: 
-    #     lora_module_names.remove('to_kv')
-    # if 'to_out' in lora_module_names: 
-    #     lora_module_names.remove('to_out')
-    # if '1' in lora_module_names: 
-    #     lora_module_names.remove('1') 
-    # if '3' in lora_module_names: 
-    #     lora_module_names.remove('3')  
-    print("lora module names:") 
-    for name in lora_module_names:
-        print(name)
+    if 'to_q' in lora_module_names: 
+        lora_module_names.remove('to_q')
+    if 'to_kv' in lora_module_names: 
+        lora_module_names.remove('to_kv')
+    if 'to_out' in lora_module_names: 
+        lora_module_names.remove('to_out')
+    if '0' in lora_module_names: 
+        lora_module_names.remove('0')
+    if '1' in lora_module_names: 
+        lora_module_names.remove('1') 
+    if '2' in lora_module_names: 
+        lora_module_names.remove('2') 
+    if '3' in lora_module_names: 
+        lora_module_names.remove('3')  
 
     return list(lora_module_names)
 
