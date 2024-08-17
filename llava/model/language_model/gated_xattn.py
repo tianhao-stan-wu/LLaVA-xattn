@@ -58,7 +58,6 @@ class MaskedCrossAttention(nn.Module):
         h = self.heads
 
         x = self.text_norm(x)
-        # media = self.image_norm(media)
 
         q = self.to_q(x)
 
@@ -74,6 +73,7 @@ class MaskedCrossAttention(nn.Module):
 
         out = einsum("... i j, ... j d -> ... i d", attn, v)
         out = rearrange(out, "b h n d -> b n (h d)")
+        
         return self.to_out(out)
 
 
@@ -83,7 +83,6 @@ class GatedCrossAttentionBlock(nn.Module):
         *,
         dim,
         dim_visual,
-        layer_idx,
         dim_head=64,
         heads=8,
         ff_mult=4,
@@ -99,7 +98,7 @@ class GatedCrossAttentionBlock(nn.Module):
 
         self.ff = FeedForward(dim, mult=ff_mult)
         self.ff_gate = nn.Parameter(torch.tensor([0.0]))
-        self.layer_idx = layer_idx
+        
 
     def forward(
         self,
@@ -115,6 +114,6 @@ class GatedCrossAttentionBlock(nn.Module):
             + x
         )
         x = self.ff(x) * self.ff_gate.tanh() + x
-
+        
         return x
 
