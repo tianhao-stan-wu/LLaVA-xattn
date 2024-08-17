@@ -27,7 +27,7 @@ from transformers.generation.utils import GenerateOutput
 from ..llava_arch import LlavaMetaModel, LlavaMetaForCausalLM
 
 # new imports
-from gated_xattn import *
+from .gated_xattn import *
 from transformers.models.llama.modeling_llama import LlamaDecoderLayer, LlamaPreTrainedModel, LlamaRMSNorm
 from transformers.modeling_outputs import BaseModelOutputWithPast
 from transformers.utils import logging
