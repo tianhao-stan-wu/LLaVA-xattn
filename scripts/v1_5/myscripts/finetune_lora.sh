@@ -42,8 +42,8 @@ deepspeed llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path lmsys/vicuna-7b-v1.5 \
     --version v1 \
-    --data_path ./test_dataset/llava_instruct_10.json \
-    --image_folder ./test_dataset \
+    --data_path ./test_dataset/llava_instruct_150k.json \
+    --image_folder ../../sharedir/research/coco2017/train2017 \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --pretrain_mm_mlp_adapter ./checkpoints/llava-v1.5-7b-pretrain/mm_projector.bin \
     --mm_projector_type mlp2x_gelu \
@@ -52,9 +52,9 @@ deepspeed llava/train/train_mem.py \
     --mm_use_im_patch_token False \
     --image_aspect_ratio pad \
     --bf16 True \
-    --output_dir ./checkpoints/test/llava-lora-debug \
-    --num_train_epochs 100 \
-    --per_device_train_batch_size 8 \
+    --output_dir ./checkpoints/llava-v1.5-7b-lora-xattn-ft150k-v2 \
+    --num_train_epochs 1 \
+    --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
@@ -72,7 +72,7 @@ deepspeed llava/train/train_mem.py \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
     --report_to wandb \
-    --wandb_project_name "test_debug"
+    --wandb_project_name "llava-v1.5-7b-lora-xattn-ft150k-v2"
 
 
 

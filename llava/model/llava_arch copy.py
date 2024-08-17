@@ -201,9 +201,6 @@ class LlavaMetaForCausalLM(ABC):
         else:
             image_features = self.encode_images(images)
 
-        # compress image features from 4096 to 64, used in cross-attention 
-        media = self.mm_resampler(image_features)
-
         # TODO: image start / end is not implemented here to support pretraining.
         if getattr(self.config, 'tune_mm_mlp_adapter', False) and getattr(self.config, 'mm_use_im_start_end', False):
             raise NotImplementedError
@@ -224,6 +221,7 @@ class LlavaMetaForCausalLM(ABC):
         if labels is None:
             labels = torch.full_like(input_ids, IGNORE_INDEX)
 
+
         # remove the padding using attention_mask -- FIXME
         _input_ids = input_ids
         input_ids = [cur_input_ids[cur_attention_mask] for cur_input_ids, cur_attention_mask in zip(input_ids, attention_mask)]
@@ -234,6 +232,7 @@ class LlavaMetaForCausalLM(ABC):
         cur_image_idx = 0
         for batch_idx, cur_input_ids in enumerate(input_ids):
             num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum()
+
             if num_images == 0:
                 cur_image_features = image_features[cur_image_idx]
                 cur_input_embeds_1 = self.get_model().embed_tokens(cur_input_ids)
@@ -241,6 +240,7 @@ class LlavaMetaForCausalLM(ABC):
                 new_input_embeds.append(cur_input_embeds)
                 new_labels.append(labels[batch_idx])
                 cur_image_idx += 1
+                print("num image is 0!")
                 continue
 
             image_token_indices = [-1] + torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist() + [cur_input_ids.shape[0]]
@@ -250,28 +250,29 @@ class LlavaMetaForCausalLM(ABC):
             for i in range(len(image_token_indices) - 1):
                 cur_input_ids_noim.append(cur_input_ids[image_token_indices[i]+1:image_token_indices[i+1]])
                 cur_labels_noim.append(cur_labels[image_token_indices[i]+1:image_token_indices[i+1]])
-            split_sizes = [x.shape[0] for x in cur_labels_noim]
+            # split_sizes = [x.shape[0] for x in cur_labels_noim]
             cur_input_embeds = self.get_model().embed_tokens(torch.cat(cur_input_ids_noim))
-            cur_input_embeds_no_im = torch.split(cur_input_embeds, split_sizes, dim=0)
-            cur_new_input_embeds = []
-            cur_new_labels = []
+            # cur_input_embeds_no_im = torch.split(cur_input_embeds, split_sizes, dim=0)
+            # cur_new_input_embeds = []
+            # cur_new_labels = []
 
-            for i in range(num_images + 1):
-                cur_new_input_embeds.append(cur_input_embeds_no_im[i])
-                cur_new_labels.append(cur_labels_noim[i])
-                if i < num_images:
-                    cur_image_features = image_features[cur_image_idx]
-                    cur_image_idx += 1
-                    cur_new_input_embeds.append(cur_image_features)
-                    cur_new_labels.append(torch.full((cur_image_features.shape[0],), IGNORE_INDEX, device=cur_labels.device, dtype=cur_labels.dtype))
+            # for i in range(num_images + 1):
+            #     cur_new_input_embeds.append(cur_input_embeds_no_im[i])
+            #     cur_new_labels.append(cur_labels_noim[i])
+            #     if i < num_images:
+            #         cur_image_features = image_features[cur_image_idx]
+            #         cur_image_idx += 1
+            #         cur_new_input_embeds.append(cur_image_features)
+            #         cur_new_labels.append(torch.full((cur_image_features.shape[0],), IGNORE_INDEX, device=cur_labels.device, dtype=cur_labels.dtype))
 
-            cur_new_input_embeds = [x.to(self.device) for x in cur_new_input_embeds]
+            # cur_new_input_embeds = [x.to(self.device) for x in cur_new_input_embeds]
 
-            cur_new_input_embeds = torch.cat(cur_new_input_embeds)
-            cur_new_labels = torch.cat(cur_new_labels)
+            # cur_new_input_embeds = torch.cat(cur_new_input_embeds)
+            # cur_new_labels = torch.cat(cur_new_labels)
 
-            new_input_embeds.append(cur_new_input_embeds)
-            new_labels.append(cur_new_labels)
+            new_input_embeds.append(cur_input_embeds)
+            cur_labels_noim = torch.cat(cur_labels_noim)
+            new_labels.append(cur_labels_noim)
 
         # Truncate sequences to max length as image embeddings can make the sequence longer
         tokenizer_model_max_length = getattr(self.config, 'tokenizer_model_max_length', None)
@@ -324,8 +325,13 @@ class LlavaMetaForCausalLM(ABC):
         if _position_ids is None:
             position_ids = None
 
-        return None, position_ids, attention_mask, past_key_values, new_input_embeds, new_labels, media
 
+        # compress image_features from 4096 to 64
+        # image_features = self.mm_resampler(image_features)
+        # fuse image with text using xattn
+        new_input_embeds = self.mm_xattn(x=new_input_embeds, media=image_features)
+
+        return None, position_ids, attention_mask, past_key_values, new_input_embeds, new_labels
 
     def initialize_vision_tokenizer(self, model_args, tokenizer):
         if model_args.mm_use_im_patch_token:
