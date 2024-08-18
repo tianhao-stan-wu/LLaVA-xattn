@@ -531,6 +531,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
 
     def forward(
         self,
+        media: Optional[torch.FloatTensor] = None,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
@@ -638,6 +639,8 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
             inputs['media'] = media
             print("have media in prepare_inputs_for_generation")
             print("media.shape:", media.shape)
+            print("torch.is_tensor(media):", torch.is_tensor(media))
+            print("type(media):", type(media))
         return inputs
 
 AutoConfig.register("llava_llama", LlavaConfig)
