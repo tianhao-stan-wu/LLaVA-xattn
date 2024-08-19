@@ -37,6 +37,10 @@ from transformers.models.llama.modeling_llama import (
     LlamaSdpaAttention,
     LlamaMLP,
 ) 
+from transformers.modeling_attn_mask_utils import (
+    _prepare_4d_causal_attention_mask,
+    _prepare_4d_causal_attention_mask_for_sdpa,
+)
 from transformers.modeling_outputs import BaseModelOutputWithPast
 from transformers.utils import logging
 from transformers.cache_utils import Cache, DynamicCache
@@ -638,9 +642,6 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
         if media is not None:
             inputs['media'] = media
             print("have media in prepare_inputs_for_generation")
-            print("media.shape:", media.shape)
-            print("torch.is_tensor(media):", torch.is_tensor(media))
-            print("type(media):", type(media))
         return inputs
 
 AutoConfig.register("llava_llama", LlavaConfig)
