@@ -531,7 +531,7 @@ class LlavaLlamaForCausalLM(LlamaForCausalLM, LlavaMetaForCausalLM):
 
     def forward(
         self,
-        media: Optional[torch.FloatTensor] = None,
+        media: Optional[torch.Tensor] = None,
         input_ids: torch.LongTensor = None,
         attention_mask: Optional[torch.Tensor] = None,
         position_ids: Optional[torch.LongTensor] = None,
