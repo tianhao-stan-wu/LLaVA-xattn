@@ -30,17 +30,16 @@ MODEL_NAME="llava-v1.5-7b-xattn-ft150k-v2-merged"
 
 python -m llava.eval.model_vqa_loader \
     --model-path ./checkpoints/$MODEL_NAME \
-    --question-file ../dataset/eval/vizwiz/test.json \
+    --question-file ./playground/data/eval/vizwiz/llava_test.jsonl \
     --image-folder ../dataset/eval/vizwiz/test \
-    --answers-file ../dataset/eval/vizwiz/answers/$MODEL_NAME.jsonl \
+    --answers-file ./playground/data/eval/vizwiz/answers/$MODEL_NAME.jsonl \
     --temperature 0 \
     --conv-mode vicuna_v1
 
 python scripts/convert_vizwiz_for_submission.py \
-    --annotation-file ../dataset/eval/vizwiz/test.json \
-    --result-file ../dataset/eval/vizwiz/answers/$MODEL_NAME.jsonl \
-    --result-upload-file ../dataset/eval/vizwiz/answers_upload/$MODEL_NAME.json
-
+    --annotation-file ./playground/data/eval/vizwiz/llava_test.jsonl \
+    --result-file ./playground/data/eval/vizwiz/answers/$MODEL_NAME.jsonl \
+    --result-upload-file ./playground/data/eval/vizwiz/answers_upload/$MODEL_NAME.json
 
 
 echo " "
