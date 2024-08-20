@@ -28,57 +28,50 @@ def main(args):
     # Model
     disable_torch_init()
 
-    image_files = []
-    image_files.append("https://llava-vl.github.io/static/images/view.jpg")
-    image_files.append("./test_dataset/000000520873.jpg")
-    image_files.append("./test_dataset/000000052846.jpg")
-
-    questions = []
-    questions.append("What are the things I should be cautious about when I visit this place?")
-    questions.append("Describe the scene in a few sentences. What's the color of the girl's hair?")
-    questions.append("Is there a curtain in the photo? What is its color?")
-
     model_name = get_model_name_from_path(args.model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(args.model_path, args.model_base, model_name, args.load_8bit, args.load_4bit, device=args.device)
 
-    for i in range(len(image_files)):
+    if "llama-2" in model_name.lower():
+        conv_mode = "llava_llama_2"
+    elif "mistral" in model_name.lower():
+        conv_mode = "mistral_instruct"
+    elif "v1.6-34b" in model_name.lower():
+        conv_mode = "chatml_direct"
+    elif "v1" in model_name.lower():
+        conv_mode = "llava_v1"
+    elif "mpt" in model_name.lower():
+        conv_mode = "mpt"
+    else:
+        conv_mode = "llava_v0"
 
-        if "llama-2" in model_name.lower():
-            conv_mode = "llava_llama_2"
-        elif "mistral" in model_name.lower():
-            conv_mode = "mistral_instruct"
-        elif "v1.6-34b" in model_name.lower():
-            conv_mode = "chatml_direct"
-        elif "v1" in model_name.lower():
-            conv_mode = "llava_v1"
-        elif "mpt" in model_name.lower():
-            conv_mode = "mpt"
-        else:
-            conv_mode = "llava_v0"
+    if args.conv_mode is not None and conv_mode != args.conv_mode:
+        print('[WARNING] the auto inferred conversation mode is {}, while `--conv-mode` is {}, using {}'.format(conv_mode, args.conv_mode, args.conv_mode))
+    else:
+        args.conv_mode = conv_mode
 
-        if args.conv_mode is not None and conv_mode != args.conv_mode:
-            print('[WARNING] the auto inferred conversation mode is {}, while `--conv-mode` is {}, using {}'.format(conv_mode, args.conv_mode, args.conv_mode))
-        else:
-            args.conv_mode = conv_mode
+    conv = conv_templates[args.conv_mode].copy()
+    if "mpt" in model_name.lower():
+        roles = ('user', 'assistant')
+    else:
+        roles = conv.roles
 
-        conv = conv_templates[args.conv_mode].copy()
-        if "mpt" in model_name.lower():
-            roles = ('user', 'assistant')
-        else:
-            roles = conv.roles
+    image = load_image(args.image_file)
+    image_size = image.size
+    # Similar operation in model_worker.py
+    image_tensor = process_images([image], image_processor, model.config)
+    if type(image_tensor) is list:
+        image_tensor = [image.to(model.device, dtype=torch.float16) for image in image_tensor]
+    else:
+        image_tensor = image_tensor.to(model.device, dtype=torch.float16)
 
-        image = load_image(image_files[i])
-        image_size = image.size
-        # Similar operation in model_worker.py
-        image_tensor = process_images([image], image_processor, model.config)
-        if type(image_tensor) is list:
-            image_tensor = [image.to(model.device, dtype=torch.bfloat16) for image in image_tensor]
-        else:
-            image_tensor = image_tensor.to(model.device, dtype=torch.bfloat16)
+    input_questions = []
+    input_questions.append("What are the things I should be cautious about when I visit this place?")
+    input_questions.append("Can you write a poem about this place for me?")
 
-        # single inference for testing
-        inp = questions[i]
-        print(f"{roles[0]}: {inp}")
+    for question in input_questions:
+
+        print(f"{roles[0]}: ", question)
+        inp = question
 
         print(f"{roles[1]}: ", end="")
 
@@ -93,7 +86,6 @@ def main(args):
         conv.append_message(conv.roles[0], inp)
         conv.append_message(conv.roles[1], None)
         prompt = conv.get_prompt()
-        print(prompt)
 
         input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).to(model.device)
         stop_str = conv.sep if conv.sep_style != SeparatorStyle.TWO else conv.sep2
@@ -114,14 +106,15 @@ def main(args):
         outputs = tokenizer.decode(output_ids[0]).strip()
         conv.messages[-1][-1] = outputs
 
-        
-        
+        if args.debug:
+            print("\n", {"prompt": prompt, "outputs": outputs}, "\n")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-path", type=str, default="facebook/opt-350m")
     parser.add_argument("--model-base", type=str, default=None)
+    parser.add_argument("--image-file", type=str, required=True)
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--conv-mode", type=str, default=None)
     parser.add_argument("--temperature", type=float, default=0.2)

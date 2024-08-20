@@ -180,23 +180,6 @@ def find_all_linear_names(model):
 
     if 'lm_head' in lora_module_names: # needed for 16-bit
         lora_module_names.remove('lm_head')
-
-    # remove lora for newly added layers
-    if 'to_q' in lora_module_names: 
-        lora_module_names.remove('to_q')
-    if 'to_kv' in lora_module_names: 
-        lora_module_names.remove('to_kv')
-    if 'to_out' in lora_module_names: 
-        lora_module_names.remove('to_out')
-    if '0' in lora_module_names: 
-        lora_module_names.remove('0')
-    if '1' in lora_module_names: 
-        lora_module_names.remove('1') 
-    if '2' in lora_module_names: 
-        lora_module_names.remove('2') 
-    if '3' in lora_module_names: 
-        lora_module_names.remove('3')  
-
     return list(lora_module_names)
 
 
@@ -812,11 +795,6 @@ def train(attn_implementation=None):
 
     # add wandb project name
     os.environ["WANDB_PROJECT"]= training_args.wandb_project_name
-
-    print("***************")
-    print("* 1 completes *")
-    print("***************")
-
     local_rank = training_args.local_rank
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
 
@@ -867,10 +845,6 @@ def train(attn_implementation=None):
         )
     model.config.use_cache = False
 
-    print("***************")
-    print("* 2 completes *")
-    print("***************")
-
     if model_args.freeze_backbone:
         model.model.requires_grad_(False)
 
@@ -897,14 +871,6 @@ def train(attn_implementation=None):
             bias=training_args.lora_bias,
             task_type="CAUSAL_LM",
         )
-
-        # # debug
-        # target_modules=find_all_linear_names(model)
-        # print("************************************")
-        # print("target modules:")
-        # print(target_modules)
-        # return
-
         if training_args.bits == 16:
             if training_args.bf16:
                 model.to(torch.bfloat16)
@@ -928,10 +894,6 @@ def train(attn_implementation=None):
             padding_side="right",
             use_fast=False,
         )
-
-    print("***************")
-    print("* 3 completes *")
-    print("***************")
 
     if model_args.version == "v0":
         if tokenizer.pad_token is None:
@@ -985,10 +947,6 @@ def train(attn_implementation=None):
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
         model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
 
-    print("***************")
-    print("* 4 completes *")
-    print("***************")
-
     if training_args.bits in [4, 8]:
         from peft.tuners.lora import LoraLayer
         for name, module in model.named_modules():
@@ -1004,16 +962,6 @@ def train(attn_implementation=None):
 
     data_module = make_supervised_data_module(tokenizer=tokenizer,
                                               data_args=data_args)
-    
-    print("***************")
-    print("* 5 completes *")
-    print("***************")
-
-    # token_img = ['image']
-    # image_id = tokenizer.convert_tokens_to_ids(token_img)[0]
-    # print("image_id:", image_id)
-    # image_id: 3027, type: int
-
     trainer = LLaVATrainer(model=model,
                     tokenizer=tokenizer,
                     args=training_args,
@@ -1024,10 +972,6 @@ def train(attn_implementation=None):
     else:
         trainer.train()
     trainer.save_state()
-
-    print("***************")
-    print("* 6 completes *")
-    print("***************")
 
     model.config.use_cache = True
 
