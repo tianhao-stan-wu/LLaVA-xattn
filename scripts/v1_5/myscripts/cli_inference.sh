@@ -27,6 +27,7 @@ echo " "
 
 python -m llava.serve.cli \
     --model-path ./checkpoints/llava-v1.5-7b-lora-merged \
+    --image-file "https://llava-vl.github.io/static/images/view.jpg" \
     --load-4bit 
     
 
