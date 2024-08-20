@@ -38,11 +38,8 @@ def main(args):
     questions.append("Describe the scene in a few sentences. What's the color of the girl's hair?")
     questions.append("Is there a curtain in the photo? What is its color?")
 
-
     model_name = get_model_name_from_path(args.model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(args.model_path, args.model_base, model_name, args.load_8bit, args.load_4bit, device=args.device)
-    # model.to(dtype=torch.bfloat16)
-    # image_processor.to(dtype=torch.bfloat16)
 
     for i in range(len(image_files)):
 

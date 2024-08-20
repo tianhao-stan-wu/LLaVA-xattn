@@ -27,7 +27,7 @@ echo " "
 
 python -m llava.serve.cli \
     --model-path ./checkpoints/llava-v1.5-7b-lora-merged \
-    # --load-4bit 
+    --load-4bit 
     
 
 echo " "
