@@ -33,8 +33,11 @@ class SimpleResBlock(nn.Module):
 def build_vision_projector(config, delay_load=False, **kwargs):
     projector_type = getattr(config, 'mm_projector_type', 'linear')
 
+    # use a simple linear projection to reduce computational complexity introduced
+    # in cross-attention
+    resampler_size = 64
     if projector_type == 'linear':
-        return nn.Linear(config.mm_hidden_size, config.hidden_size)
+        return nn.Linear(config.mm_hidden_size, resampler_size)
 
     mlp_gelu_match = re.match(r'^mlp(\d+)x_gelu$', projector_type)
     if mlp_gelu_match:

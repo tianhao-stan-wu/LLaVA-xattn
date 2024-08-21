@@ -928,10 +928,15 @@ def train(attn_implementation=None):
         model.config.tokenizer_model_max_length = tokenizer.model_max_length
 
         model.config.tune_mm_mlp_adapter = training_args.tune_mm_mlp_adapter = model_args.tune_mm_mlp_adapter
+        # only tune projector and xattn blocks, freeze vision encoder and LLM
         if model_args.tune_mm_mlp_adapter:
             model.requires_grad_(False)
             for p in model.get_model().mm_projector.parameters():
                 p.requires_grad = True
+            for decoder_layer in model.get_model().get_layers():
+                for p in decoder_layer.xattn.parameters():
+                    p.requires_grad = True
+            print("projector and xattn layers set requires_grad = True")
 
         model.config.freeze_mm_mlp_adapter = training_args.freeze_mm_mlp_adapter
         if training_args.freeze_mm_mlp_adapter:

@@ -41,15 +41,13 @@ deepspeed llava/train/train_mem.py \
     --data_path ../dataset/LLaVA-pretrain/blip_laion_cc_sbu_558k.json \
     --image_folder ../dataset/LLaVA-pretrain/images \
     --vision_tower openai/clip-vit-large-patch14-336 \
-    --pretrain_mm_mlp_adapter ./checkpoints/llava-v1.5-7b-pretrain/mm_projector.bin \
-    --mm_projector_type mlp2x_gelu \
-    --freeze_backbone True \
-    --freeze_mm_mlp_adapter True \
+    --mm_projector_type linear \
+    --tune_mm_mlp_adapter True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --bf16 True \
-    --output_dir ./checkpoints/llava-v1.5-7b-pretrain-xattn-v2 \
+    --output_dir ./checkpoints/llava-v1.5-7b-pretrain-xattn-v3 \
     --num_train_epochs 1 \
     --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 4 \
@@ -69,7 +67,7 @@ deepspeed llava/train/train_mem.py \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
     --report_to wandb \
-    --wandb_project_name "llava-v1.5-7b-pretrain-xattn"
+    --wandb_project_name "llava-v1.5-7b-pretrain-xattn-v3"
 
 
 echo " "

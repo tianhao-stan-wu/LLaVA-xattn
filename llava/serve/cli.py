@@ -67,6 +67,10 @@ def main(args):
     input_questions = []
     input_questions.append("What are the things I should be cautious about when I visit this place?")
     input_questions.append("Can you write a poem about this place for me?")
+    input_questions.append("Is there a mountain, lake, or person in the scene?")
+
+    print()
+    print("Start of conversation: ")
 
     for question in input_questions:
 
