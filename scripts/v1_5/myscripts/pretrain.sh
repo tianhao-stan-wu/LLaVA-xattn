@@ -35,7 +35,7 @@ echo " "
 # --image_folder ../dataset/LLaVA-pretrain/images \
 
 deepspeed llava/train/train_mem.py \
-    --deepspeed ./scripts/zero2.json \
+    --deepspeed ./scripts/zero3_offload.json \
     --model_name_or_path lmsys/vicuna-7b-v1.5 \
     --version plain \
     --data_path ../dataset/LLaVA-pretrain/blip_laion_cc_sbu_558k.json \
@@ -49,7 +49,7 @@ deepspeed llava/train/train_mem.py \
     --bf16 True \
     --output_dir ./checkpoints/llava-v1.5-7b-pretrain-xattn-v3 \
     --num_train_epochs 1 \
-    --per_device_train_batch_size 16 \
+    --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
