@@ -138,6 +138,7 @@ class LlamaModel(LlamaPreTrainedModel):
 
     def set_image_features(self, value):
         self.image_features = value
+        print(self.image_features.get_device())
 
     def get_layers(self):
         return self.layers
