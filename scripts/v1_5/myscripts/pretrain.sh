@@ -42,7 +42,7 @@ deepspeed llava/train/train_mem.py \
     --image_folder ../dataset/LLaVA-pretrain/images \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --mm_projector_type mlp_xattn \
-    --tune_mm_mlp_adapter True \
+    --tune_adapter_xattn True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \

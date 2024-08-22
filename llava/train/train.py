@@ -56,6 +56,7 @@ class ModelArguments:
     version: Optional[str] = field(default="v0")
     freeze_backbone: bool = field(default=False)
     tune_mm_mlp_adapter: bool = field(default=False)
+    tune_adapter_xattn: bool = field(default=False)
     vision_tower: Optional[str] = field(default=None)
     mm_vision_select_layer: Optional[int] = field(default=-1)   # default to the last layer
     pretrain_mm_mlp_adapter: Optional[str] = field(default=None)
@@ -190,6 +191,7 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer,
     only_save_adapter = False
 
     if only_save_adapter:
+        print("only save adapter")
         if getattr(trainer.args, "tune_mm_mlp_adapter", False):
             # Only save Adapter
             keys_to_match = ['mm_projector']
@@ -218,6 +220,7 @@ def safe_save_model_for_hf_trainer(trainer: transformers.Trainer,
 
     state_dict = trainer.model.state_dict()
     if trainer.args.should_save:
+        print("saving in should_save")
         cpu_state_dict = {
             key: value.cpu()
             for key, value in state_dict.items()
@@ -934,6 +937,12 @@ def train(attn_implementation=None):
         model.config.tune_mm_mlp_adapter = training_args.tune_mm_mlp_adapter = model_args.tune_mm_mlp_adapter
         # only tune projector and xattn blocks, freeze vision encoder and LLM
         if model_args.tune_mm_mlp_adapter:
+            model.requires_grad_(False)
+            for p in model.get_model().mm_projector.parameters():
+                p.requires_grad = True
+
+        if model_args.tune_adapter_xattn:
+            print("tune_adapter_xattn...")
             model.requires_grad_(False)
             for p in model.get_model().mm_projector.parameters():
                 p.requires_grad = True
