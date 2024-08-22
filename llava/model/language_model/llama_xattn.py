@@ -38,7 +38,7 @@ class LlamaDecoderLayer(nn.Module):
         self.hidden_size = config.hidden_size
 
         self.self_attn = LLAMA_ATTENTION_CLASSES[config._attn_implementation](config=config, layer_idx=layer_idx)
-        self.interleave_num = 3
+        self.interleave_num = 4
 
         if layer_idx % self.interleave_num == 0:
             self.xattn = GatedCrossAttentionBlock(dim=4096, dim_visual=64)
@@ -143,7 +143,6 @@ class LlamaModel(LlamaPreTrainedModel):
 
     def set_image_features(self, value):
         self.image_features = value
-        print(self.image_features.get_device())
 
     def get_layers(self):
         return self.layers
