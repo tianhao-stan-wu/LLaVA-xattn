@@ -38,8 +38,8 @@ deepspeed llava/train/train_mem.py \
     --deepspeed ./scripts/zero2.json \
     --model_name_or_path lmsys/vicuna-7b-v1.5 \
     --version plain \
-    --data_path ../dataset/LLaVA-pretrain/blip_laion_cc_sbu_558k.json \
-    --image_folder ../dataset/LLaVA-pretrain/images \
+    --data_path ./test_dataset/llava_instruct_10.json \
+    --image_folder ./test_dataset \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --mm_projector_type mlp_xattn \
     --tune_mm_mlp_adapter True \
