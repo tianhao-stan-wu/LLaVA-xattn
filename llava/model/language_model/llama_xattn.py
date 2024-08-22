@@ -38,7 +38,10 @@ class LlamaDecoderLayer(nn.Module):
         self.hidden_size = config.hidden_size
 
         self.self_attn = LLAMA_ATTENTION_CLASSES[config._attn_implementation](config=config, layer_idx=layer_idx)
-        self.xattn = GatedCrossAttentionBlock(dim=4096, dim_visual=64)
+
+        if layer_idx % 2 == 0:
+            self.xattn = GatedCrossAttentionBlock(dim=4096, dim_visual=64)
+        self.layer_idx = layer_idx
 
         self.mlp = LlamaMLP(config)
         self.input_layernorm = LlamaRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
@@ -74,7 +77,8 @@ class LlamaDecoderLayer(nn.Module):
                 "Passing `padding_mask` is deprecated and will be removed in v4.37. Please make sure use `attention_mask` instead.`"
             )
 
-        hidden_states = self.xattn(hidden_states, image_features)
+        if self.layer_idx % 2 == 0:
+            hidden_states = self.xattn(hidden_states, image_features)
 
         residual = hidden_states
 

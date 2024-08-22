@@ -936,7 +936,6 @@ def train(attn_implementation=None):
             for decoder_layer in model.get_model().get_layers():
                 for p in decoder_layer.xattn.parameters():
                     p.requires_grad = True
-            print("projector and xattn layers set requires_grad = True")
 
         model.config.freeze_mm_mlp_adapter = training_args.freeze_mm_mlp_adapter
         if training_args.freeze_mm_mlp_adapter:

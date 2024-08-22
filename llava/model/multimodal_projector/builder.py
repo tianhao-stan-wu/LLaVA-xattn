@@ -45,7 +45,7 @@ def build_vision_projector(config, delay_load=False, **kwargs):
         modules = [nn.Linear(config.mm_hidden_size, config.hidden_size)]
         for _ in range(1, mlp_depth):
             modules.append(nn.GELU())
-            modules.append(nn.Linear(config.hidden_size, config.hidden_size))
+            modules.append(nn.Linear(config.hidden_size, resampler_size))
         return nn.Sequential(*modules)
 
     if projector_type == 'identity':
