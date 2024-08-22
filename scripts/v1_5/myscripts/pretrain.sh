@@ -41,7 +41,7 @@ deepspeed llava/train/train_mem.py \
     --data_path ../dataset/LLaVA-pretrain/blip_laion_cc_sbu_558k.json \
     --image_folder ../dataset/LLaVA-pretrain/images \
     --vision_tower openai/clip-vit-large-patch14-336 \
-    --mm_projector_type mlp2x_gelu \
+    --mm_projector_type mlp_xattn \
     --tune_mm_mlp_adapter True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
@@ -49,9 +49,9 @@ deepspeed llava/train/train_mem.py \
     --bf16 True \
     --output_dir ./checkpoints/llava-v1.5-7b-pretrain-xattn-v3 \
     --num_train_epochs 1 \
-    --per_device_train_batch_size 8 \
+    --per_device_train_batch_size 16 \
     --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 4 \
+    --gradient_accumulation_steps 2 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 24000 \

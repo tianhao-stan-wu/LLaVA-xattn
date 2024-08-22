@@ -38,14 +38,20 @@ def build_vision_projector(config, delay_load=False, **kwargs):
     resampler_size = 64
     if projector_type == 'linear':
         return nn.Linear(config.mm_hidden_size, resampler_size)
+    
+    if projector_type == 'mlp_xattn':
+        modules = [nn.Linear(config.mm_hidden_size, resampler_size*2)]
+        modules.append(nn.GELU())
+        modules.append(nn.Linear(resampler_size*2, resampler_size))
+        return nn.Sequential(*modules)
 
     mlp_gelu_match = re.match(r'^mlp(\d+)x_gelu$', projector_type)
     if mlp_gelu_match:
         mlp_depth = int(mlp_gelu_match.group(1))
-        modules = [nn.Linear(config.mm_hidden_size, resampler_size*2)]
+        modules = [nn.Linear(config.mm_hidden_size, config.hidden_size)]
         for _ in range(1, mlp_depth):
             modules.append(nn.GELU())
-            modules.append(nn.Linear(config.hidden_size, resampler_size))
+            modules.append(nn.Linear(config.hidden_size, config.hidden_size))
         return nn.Sequential(*modules)
 
     if projector_type == 'identity':
