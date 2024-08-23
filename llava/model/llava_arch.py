@@ -209,16 +209,20 @@ class LlavaMetaForCausalLM(ABC):
         mask = (input_ids != IMAGE_TOKEN_INDEX)
 
         input_ids = [ids[mask[i]] for i, ids in enumerate(input_ids)]
-        attention_mask = [mask_[mask[i]] for i, mask_ in enumerate(attention_mask)]
-        labels = [lbl[mask[i]] for i, lbl in enumerate(labels)]
-
         input_ids = torch.stack(input_ids, dim=0)
-        attention_mask = torch.stack(attention_mask, dim=0)
-        labels = torch.stack(labels, dim=0)
+        inputs_embeds = self.get_model().embed_tokens(input_ids)
+        
+        if attention_mask is not None:
+            attention_mask = [mask_[mask[i]] for i, mask_ in enumerate(attention_mask)]
+            attention_mask = torch.stack(attention_mask, dim=0)
+
+        if labels is not None:
+            labels = [lbl[mask[i]] for i, lbl in enumerate(labels)]
+            labels = torch.stack(labels, dim=0)
 
         self.get_model().set_image_features(image_features)
                 
-        return input_ids, position_ids, attention_mask, past_key_values, None, labels
+        return None, position_ids, attention_mask, past_key_values, inputs_embeds, labels
 
     def initialize_vision_tokenizer(self, model_args, tokenizer):
         if model_args.mm_use_im_patch_token:
