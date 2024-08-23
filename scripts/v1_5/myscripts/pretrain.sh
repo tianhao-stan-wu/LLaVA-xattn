@@ -38,7 +38,7 @@ deepspeed llava/train/train_mem.py \
     --deepspeed ./scripts/zero2.json \
     --model_name_or_path lmsys/vicuna-7b-v1.5 \
     --version plain \
-    --data_path ./test_dataset/blip_laion_cc_sbu_5k.json \
+    --data_path ../dataset/LLaVA-pretrain/blip_laion_cc_sbu_558k.json \
     --image_folder ../dataset/LLaVA-pretrain/images \
     --vision_tower openai/clip-vit-large-patch14-336 \
     --mm_projector_type mlp_xattn \
@@ -49,16 +49,16 @@ deepspeed llava/train/train_mem.py \
     --bf16 True \
     --output_dir ./checkpoints/llava-v1.5-7b-pretrain-xattn-v3 \
     --num_train_epochs 1 \
-    --per_device_train_batch_size 16 \
+    --per_device_train_batch_size 32 \
     --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 4 \
+    --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
     --save_steps 24000 \
     --save_total_limit 1 \
-    --learning_rate 1e-4 \
+    --learning_rate 1e-3 \
     --weight_decay 0. \
-    --warmup_ratio 0.1 \
+    --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
